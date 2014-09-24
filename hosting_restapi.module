@@ -1,0 +1,96 @@
+<?php
+
+/**
+ * @file
+ *   Hosting REST API functions, and Drupal hooks.
+ */
+
+define('HOSTING_RESTAPI_ORDER_STATUS_NEW', 1);
+define('HOSTING_RESTAPI_ORDER_STATUS_CLONE_INPROGRESS', 2);
+define('HOSTING_RESTAPI_ORDER_STATUS_CLONE_COMPLETE', 3);
+define('HOSTING_RESTAPI_ORDER_STATUS_IMPORT_INPROGRESS', 4);
+define('HOSTING_RESTAPI_ORDER_STATUS_IMPORT_COMPLETE', 5);
+
+/**
+ * Implements hook_menu().
+ */
+function hosting_restapi_menu() {
+  $items = array();
+
+  $items['hosting/api/site'] = array(
+    'title' => 'Manage a site',
+    'page callback' => 'hosting_restapi_site',
+    'description' => 'Get/post a site',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Access check, using the $key and $secret.
+ * This is extremely basic, since not planning on an open service.
+ * We are only having two trusted systems communicate with each other.
+ */
+function hosting_restapi_check_access($key, $secret) {
+  global $civicrmhosting_key;
+  global $civicrmhosting_secret;
+
+  if (empty($key) || empty($secret)) {
+    throw new Exception('Access denied. Missing credentials.');
+  }
+
+  if ($key != $civicrmhosting_key && $secret != $civicrmhosting_secret) {
+    throw new Exception('Access denied. Invalid credentials.');
+  }
+
+  return TRUE;
+}
+
+/**
+ * Log a message for a site.
+ *
+ * @param String $url
+ * @param Int $status
+ * @param String $message
+ */
+function hosting_restapi_log($url, $status, $message) {
+  // Fetch the order_id of the site
+  $order_id = db_result(db_query("SELECT id FROM hosting_restapi_order WHERE site = '%s'", $url));
+
+  if (! $order_id) {
+    drush_log('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
+    return;
+  }
+
+  // Write the log
+  $record = new StdClass();
+  $record->order_id = $order_id;
+  $record->task = $status; // FIXME this is kind of weird..
+  $record->message = $message;
+  $record->created = time();
+
+  drupal_write_record('hosting_restapi_log', $record);
+
+  // Update the parent status & update time.
+  db_query('UPDATE hosting_restapi_order SET updated = %d AND current_status = %d WHERE id = %d', array(time(), $status, $order_id));
+}
+
+/**
+ * Implements hook_post_hosting_TASK_TYPE_task().
+ */
+function hosting_restapi_post_hosting_clone_task($task, $data) {
+  if ($task->ref->type == 'site') {
+    hosting_restapi_log($task->task_args['new_uri'], HOSTING_RESTAPI_ORDER_STATUS_CLONE_COMPLETE, 'hosting_restapi_post_hosting_clone_task completed');
+  }
+}
+
+/**
+ * Implements hook_post_hosting_TASK_TYPE_task().
+ */
+function hosting_restapi_post_hosting_import_task($task, $data) {
+  if ($task->ref->type == 'site') {
+    hosting_restapi_log($task->context_options['uri'], HOSTING_RESTAPI_ORDER_STATUS_IMPORT_COMPLETE, 'hosting_restapi_post_hosting_import_task completed');
+  }
+}

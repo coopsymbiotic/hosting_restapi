@@ -1,0 +1,5 @@
+name = Hosting REST API
+description = Minimal REST API implementation for Aegir
+package = Aegir
+dependencies[] = hosting
+core = 6.x
