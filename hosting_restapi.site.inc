@@ -215,8 +215,6 @@ function _hosting_restapi_is_allowed_creation($url) {
  * @param String $invoice_id
  */
 function hosting_restapi_is_valid_invoice($invoice_id) {
-  return TRUE;
-
   if (! $invoice_id) {
     throw new Exception('Missing invoice.');
   }
@@ -230,6 +228,8 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
     watchdog('hosting_restapi', 'Invoice ID already used.');
     throw new Exception('Invalid invoice ID.');
   }
+
+  return TRUE;
 
   // Check that the invoice_id is legit.. supporting only CiviCRM for now.
   require_once drupal_get_path('module', 'hosting_restapi') . '/civicrm.api.php';
