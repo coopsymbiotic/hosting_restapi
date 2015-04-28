@@ -1,20 +1,16 @@
 <?php
 
 /**
- * Implements hook_hosting_restapi_validate_id()
+ * Implements hook_hosting_restapi_validate_invoice_id().
+ *
+ * TODO: document.
  */
-function hosting_restapi_civicrm_hosting_restapi_validate_id($invoice_id) {
+function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id) {
   watchdog('hosting_restapi_civicrm', 'hosting_restapi_civicrm_hosting_restapi_validate_id');
 
-  // Check that the invoice_id is legit...
-  require_once drupal_get_path('module', 'hosting_restapi_civicrm') . '/civicrm.api.php';
-  $api = new civicrm_api3(array(
-    'server' => variable_get('hosting_restapi_crmhost', NULL),
-    'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
-    'key' => variable_get('hosting_restapi_crmkey', NULL),
-  ));
-
-  $api->Contribution->Get(array('invoice_id' => $invoice_id));
+  // Lookup the invoice_id in CiviCRM.
+  $api = hosting_restapi_civicrm_api();
+  $api->Contribution->Get(array('trxn_id' => $invoice_id));
 
   if ($api->count == 1) {
     return TRUE;
@@ -31,6 +27,7 @@ function hosting_restapi_civicrm_hosting_restapi_check_access($key = NULL, $secr
   watchdog('hosting_restapi_civicrm', 'hosting_restapi_civicrm_hosting_restapi_check_access');
 
   return TRUE; // TODO: Fixme.
+
   // Not sure what to do with this, this whole check was commented out in the original code
 
   global $civicrmhosting_key;
@@ -45,4 +42,19 @@ function hosting_restapi_civicrm_hosting_restapi_check_access($key = NULL, $secr
   }
 
   return TRUE;
+}
+
+/**
+ * Returns a CiviCRM REST API object.
+ */
+function & hosting_restapi_civicrm_api() {
+  require_once drupal_get_path('module', 'hosting_restapi_civicrm') . '/civicrm.api.php';
+
+  $api = new civicrm_api3(array(
+    'server' => variable_get('hosting_restapi_crmhost', NULL),
+    'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
+    'key' => variable_get('hosting_restapi_crmkey', NULL),
+  ));
+
+  return $api;
 }
