@@ -119,38 +119,11 @@ function hosting_restapi_site_post() {
   // TODO : check if URL format is OK (i.e. no spaces, etc)
   $url = check_plain($_POST['url']);
 
-  if (! $url) {
-    throw new Exception('The "url" parameter was empty.');
-  }
-
-  // This function checks for uniqueness of domains and aliases.
-  // TODO: we should also implement hook_allow_domain() to enforce domain?
-  if (! hosting_domain_allowed($url)) {
-    throw new Exception('The url is not allowed by local configurations: ' . $url);
-  }
-
-  $site = hosting_get_site_by_url($url);
-
-  if ($site) {
-    throw new Exception('The site already exists.');
-  }
-
-/* This creates a new site */
-/*
-  $site = new StdClass();
-  $site->type = 'site';
-  $site->title = $url;
-  $site->db_server = variable_get('hosting_default_db_server', 0);
-  $site->client = variable_get('hosting_default_client', 1);
-  $site->uid = 1;
-  $site->platform = 418; // FIXME (civicrm 4.4)
-  $site->profile = 162; // FIXME (drupal standard)
-  $site->ssl_enabled = 2;
-  $site->ssl_key = 5;
-*/
+  $site = _hosting_restapi_is_allowed_creation($url);
 
   // Check if the order/invoice already exists.
   $invoice_id = $_POST['invoice'];
+
   hosting_restapi_is_valid_invoice($invoice_id);
 
   // Log order in hosting_restapi_order.
@@ -166,19 +139,73 @@ function hosting_restapi_site_post() {
   drupal_write_record('hosting_restapi_order', $record);
 
   // Clone a site
-  // FIXME: 595 = demo.s.c
-  $result = hosting_add_task(595, 'clone', array(
+  $template_nid = variable_get('hosting_saas_template_site_nid', NULL);
+  $new_platform_nid = variable_get('hosting_saas_target_platform', NULL);
+  $new_db_server = variable_get('hosting_saas_db_server', 2); // 2 = DB server on single-server default setups
+
+  // TODO: Don't do hosting_add_task immediately, implement hook instead
+  $result = hosting_add_task($template_nid, 'clone', array(
     'new_uri' => $url,
-    'new_db_server' => variable_get('hosting_default_db_server', 0),
-    'target_platform' => 435, // 4.5 platform
+    // 2 is the default nid for single-server setups
+    'new_db_server' => $new_db_server,
+    'target_platform' => $new_platform_nid,
     'aliases' => '',
     'redirection' => '',
-    'ssl_enabled' => 2,
-    'ssl_key' => 5, // *.symbiotic.coop
+    'ssl_enabled' => 2, // FIXME : Use template site's setting?
+    'ssl_key' => 5, // FIXME : Use template site's ssl_key? (Assuming SNI)
   ));
 
   hosting_restapi_log($url, HOSTING_RESTAPI_ORDER_STATUS_NEW, t('The order is valid and has been created.'));
   return array('status' => 'success', 'data' => $result);
+}
+
+function _hosting_restapi_is_allowed_creation($url) {
+  if (!$url) {
+    throw new Exception('The "url" parameter was empty.');
+  }
+
+  // This function checks for uniqueness of domains and aliases.
+  // TODO: we should also implement hook_allow_domain() to enforce domain?
+  if (! hosting_domain_allowed($url)) {
+    throw new Exception('The url is not allowed by local configurations: ' . $url);
+  }
+
+  $site = hosting_get_site_by_url($url);
+
+  if ($site) {
+    throw new Exception('The site already exists.');
+  }
+
+  $variables = array(
+    'hosting_saas_target_platform',
+    'hosting_saas_db_server',
+    'hosting_saas_template_site_nid',
+  );
+
+  foreach ($variables as $to_check) {
+    if (variable_get($to_check, NULL) === NULL) {
+      throw new Exception("Variable hasn't been chosen yet: " . $to_check);
+    }
+  }
+
+  $template_site_nid = variable_get('hosting_saas_template_site_nid', NULL);
+
+  // This tells us whether there's a clone task running or queued
+  // for the site
+  $sql = "SELECT n.nid as nid, ht.rid, task_status, executed
+          FROM hosting_task ht INNER JOIN node n
+          ON ht.nid = n.nid AND ht.vid = n.vid
+          WHERE ht.rid = %d AND ht.task_type = 'clone'
+          AND (ht.task_status = -1 OR ht.task_status = 0)
+          LIMIT 1";
+  
+  // TRUE = Go ahead, FALSE = stop
+  if (db_fetch_object(db_query($sql, $template_site_nid))) {
+    throw new Exception('Server is busy (clone operation already in progress).');
+  }
+
+  watchdog('hosting_restapi', '_hosting_restapi_is_allowed_creation');
+  return $site;
 }
 
 /**
@@ -201,6 +228,8 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
     watchdog('hosting_restapi', 'Invoice ID already used.');
     throw new Exception('Invalid invoice ID.');
   }
+
+  return TRUE;
 
   // Check that the invoice_id is legit.. supporting only CiviCRM for now.
   require_once drupal_get_path('module', 'hosting_restapi') . '/civicrm.api.php';
