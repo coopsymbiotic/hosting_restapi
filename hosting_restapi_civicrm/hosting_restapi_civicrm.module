@@ -3,11 +3,11 @@
 /**
  * Implements hook_hosting_restapi_validate_id()
  */
-function hosting_restapi_civi_hosting_restapi_validate_id($invoice_id) {
-  watchdog('hosting_restapi_civi', 'hosting_restapi_civi_hosting_restapi_validate_id');
+function hosting_restapi_civicrm_hosting_restapi_validate_id($invoice_id) {
+  watchdog('hosting_restapi_civicrm', 'hosting_restapi_civicrm_hosting_restapi_validate_id');
 
   // Check that the invoice_id is legit...
-  require_once drupal_get_path('module', 'hosting_restapi_civi') . '/civicrm.api.php';
+  require_once drupal_get_path('module', 'hosting_restapi_civicrm') . '/civicrm.api.php';
   $api = new civicrm_api3(array(
     'server' => variable_get('hosting_restapi_crmhost', NULL),
     'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
@@ -27,8 +27,8 @@ function hosting_restapi_civi_hosting_restapi_validate_id($invoice_id) {
 /**
  * Implements hook_hosting_restapi_check_access()
  */
-function hosting_restapi_civi_hosting_restapi_check_access($key = NULL, $secret = NULL) {
-  watchdog('hosting_restapi_civi', 'hosting_restapi_civi_hosting_restapi_check_access');
+function hosting_restapi_civicrm_hosting_restapi_check_access($key = NULL, $secret = NULL) {
+  watchdog('hosting_restapi_civicrm', 'hosting_restapi_civicrm_hosting_restapi_check_access');
 
   return TRUE; // TODO: Fixme.
   // Not sure what to do with this, this whole check was commented out in the original code

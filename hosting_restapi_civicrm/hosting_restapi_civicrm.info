@@ -1,0 +1,7 @@
+name = Hosting REST API CiviCRM support
+description = Hosting REST API CiviCRM support (validate invoices, get organisation info, etc).
+package = Aegir
+dependencies[] = hosting
+dependencies[] = hosting_saas
+dependencies[] = hosting_restapi
+core = 6.x
