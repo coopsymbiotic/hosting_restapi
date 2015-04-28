@@ -31,7 +31,10 @@ function hosting_restapi_site() {
   }
 
   echo json_encode($result);
-  drupal_exit();
+
+  // NB: in Drupal7, this becomes only drupal_exit();
+  module_invoke_all('exit');
+  exit();
 }
 
 /**
@@ -54,6 +57,7 @@ function hosting_restapi_site_get() {
   // NB: as a security measure, the invoice_id and url must match.
   if ($invoice_id) {
     $order_id = db_result(db_query('SELECT id FROM hosting_restapi_order WHERE invoice_id = "%s" AND site = "%s"', $invoice_id, $url));
+    $site = hosting_get_site_by_url($url);
 
     if (! $order_id) {
       throw new Exception(t('Invalid invoice ID or URL. Please contact support for more information.'));
@@ -79,6 +83,35 @@ function hosting_restapi_site_get() {
           );
           return $result;
         }
+        elseif ($clone_status == HOSTING_TASK_ERROR) {
+          $result = array(
+            'status' => 'error',
+            'data' => array(
+              'site_url' => $site->title,
+              'message' => "Clone operation failed.",
+            ),
+          );
+          return $result;
+        }
+      }
+      elseif ($record->task == HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE) {
+        $result = array(
+          'status' => 'success',
+          'data' => array(
+            'site_url' => $site->title,
+            'site_status' => $record->task,
+            'login_link' => 'https://' . $site->title . '/user',
+            'login_message' => t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox."),
+          ),
+        );
+
+        $cache = cache_get("hosting:site:" . $site->nid . ":symbiotic_login");
+        if ($cache && (time() < $cache->data['expire'])) {
+          $result['data']['login_link'] = $cache->data['link'];
+          $result['data']['login_message'] = t("You can login directly using the link above.") . ' ' . t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox.");
+        }
+
+        return $result;
       }
 
       $result = array(
@@ -112,12 +145,21 @@ function hosting_restapi_site_get() {
 
 /**
  * Implements the 'site POST' API (create).
+ *
+ * NB: permission to create a site is done by checking the validity
+ * of the invoice ($_POST['invoice']) in CiviCRM.
+ * See @hosting_restapi_is_valid_invoice().
+ *
+ * The main domain ([url].example.org) is now enforced by hosting_saas, so
+ * we only handle the [url] is rather the subdomain.
  */
 function hosting_restapi_site_post() {
-  // hosting_restapi_check_access($_POST['key'], $_POST['secret']);
-
-  // TODO : check if URL format is OK (i.e. no spaces, etc)
   $url = check_plain($_POST['url']);
+  $url = preg_replace('/[^\.a-z0-9]/', '', $url);
+
+  if ($url != $_POST['url']) {
+    throw new Exception('The "url" parameter had invalid characters.');
+  }
 
   $site = _hosting_restapi_is_allowed_creation($url);
 
@@ -152,7 +194,7 @@ function hosting_restapi_site_post() {
     'aliases' => '',
     'redirection' => '',
     'ssl_enabled' => 2, // FIXME : Use template site's setting?
-    'ssl_key' => 5, // FIXME : Use template site's ssl_key? (Assuming SNI)
+    'ssl_key' => 25, // FIXME : Use template site's ssl_key? (Assuming SNI)
   ));
 
   hosting_restapi_log($url, HOSTING_RESTAPI_ORDER_STATUS_NEW, t('The order is valid and has been created.'));
@@ -213,6 +255,7 @@ function _hosting_restapi_is_allowed_creation($url) {
  * i.e. checks if the invoice_id is valid in CiviCRM.
  *
  * @param String $invoice_id
+ * @returns Boolean
  */
 function hosting_restapi_is_valid_invoice($invoice_id) {
   if (! $invoice_id) {
@@ -229,17 +272,11 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
     throw new Exception('Invalid invoice ID.');
   }
 
-  return TRUE;
-
   // Check that the invoice_id is legit.. supporting only CiviCRM for now.
-  require_once drupal_get_path('module', 'hosting_restapi') . '/civicrm.api.php';
-  $api = new civicrm_api3(array(
-    'server' => variable_get('hosting_restapi_crmhost', NULL),
-    'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
-    'key' => variable_get('hosting_restapi_crmkey', NULL),
-  ));
-
-  $api->Contribution->Get(array('invoice_id' => $invoice_id));
+  // In civicrm, the invoice_id is md5() with other things (not too sure why)
+  // but the trxn_id is shown to the user.
+  $api = hosting_restapi_civicrmapi();
+  $api->Contribution->Get(array('trxn_id' => $invoice_id));
 
   if ($api->count == 1) {
     return TRUE;
