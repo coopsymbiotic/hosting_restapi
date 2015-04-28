@@ -14,6 +14,66 @@ Requirements
 ============
 
 * Aegir 6.x-2.x
+* hosting_saas https://drupal.org/project/hosting_saas
+
+Recommended
+===========
+
+This module was initially developped for Coop SymbioTIC's CiviCRM hosting.
+It was therefore designed to work with a CiviCRM contribution page to track
+payments and to track client/organisation information.
+
+* Front end is in the symbiocivicrm extension:
+  https://github.com/coopsymbiotic/coop.symbiotic.symbiocivicrm
+
+* Post-install site configuration is in provision_symbiotic:
+  https://github.com/coopsymbiotic/provision_symbiotic 
+
+Supported use cases and assumptions
+===================================
+
+Simplest use case
+-----------------
+
+You need a REST API to create sites in Aegir. It might be because you're using
+the command line and need to script things, or you want to tie in with another
+admin software.
+
+In this case, you only need to authenticate your external tool using a single
+API key.
+
+Integration with a payment form (ex: CiviCRM, Webform or Commerce)
+------------------------------------------------------------------
+
+You would like your users to self-serve signup to your services using a web
+based form. That form may include payment up front (credit card or other).
+
+In this case, since we wanted the workflow to be interactive for clients
+and avoid proxying requests through the web server, clients can submit their
+REST request directly to the Aegir server.
+
+To authenticate requets, clients must provide their invoice ID and URL.
+The Aegir server then authenticates back with the front-end to validate
+the invoice ID (is paid, has not been re-used). Each valid order gets
+assigned a token. The token is then used to authenticate the site for
+further requests (ex: get org/client information, run backups, get db, etc).
+
+API documentation
+=================
+
+(needs more information on parameters, etc)
+
+* GET /hosting/api/site : get information on a site. Arguments: url, token.
+
+* POST /hosting/api/site : create a new site. Arguments: url, invoice_id.
+
+* GET /hosting/api/sites/config : get site config (org name, contact info, etc). Arguments: url, token.
+
+TODO (not yet implemented, brainstorm):
+
+* run a backup
+* download a copy of the backup
+* clone/sync a site? (prod->dev)
 
 License
 =======
