@@ -207,6 +207,11 @@ function hosting_restapi_site_post() {
   return array('status' => 'success', 'data' => $result);
 }
 
+/**
+ * A few quick pre-flight checks to make sure that the system
+ * is correctly configured (Drupal variales) and that the URL
+ * is valid.
+ */
 function _hosting_restapi_is_allowed_creation($url) {
   if (!$url) {
     throw new Exception('The "url" parameter was empty.');
@@ -261,7 +266,11 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
     throw new Exception('Invalid invoice ID.');
   }
 
-  module_invoke_all("hosting_restapi_validate_id", $invoice_id);
+  // NB: for now, we assume that hook implementations will throw an exception
+  // if they couldn't validate the invoice_id. It assumes we have only one
+  // way to validate invoices (create orders). If we want to change this at
+  // some point, we should add a "invoice_type" argument.
+  module_invoke_all("hosting_restapi_validate_invoice_id", $invoice_id);
 
   return TRUE;
 }
