@@ -17,7 +17,7 @@ function hosting_restapi_is_valid_auth_token($url, $token) {
     throw new Exception('Missing url argument.');
   }
 
-  $exists = db_result(db_query('SELECT count(*) as cpt FROM hosting_restapi_order WHERE url = "%s" AND token = "%s"', $url, $token));
+  $exists = db_query('SELECT count(*) as cpt FROM hosting_restapi_order WHERE url = :url AND token = :token', array(':url' => $url, ':token' => $token))->fetchField();
   return ($exists ? TRUE : FALSE);
 }
 
@@ -34,7 +34,7 @@ function hosting_restapi_get_invoice_id_from_token($url, $token) {
     throw new Exception('Missing url argument.');
   }
 
-  return db_result(db_query('SELECT invoice_id FROM hosting_restapi_order WHERE site = "%s" AND token = "%s"', $url, $token));
+  return db_query('SELECT invoice_id FROM hosting_restapi_order WHERE site = :url AND token = :token', array(':url' => $url, ':token' => $token))->fetchField();
 }
 
 /**

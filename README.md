@@ -13,7 +13,7 @@ https://github.com/coopsymbiotic/hosting_restapi
 Requirements
 ============
 
-* Aegir 6.x-2.x
+* Aegir 7.x-3.x
 * hosting_saas https://drupal.org/project/hosting_saas
 
 Recommended

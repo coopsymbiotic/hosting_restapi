@@ -11,7 +11,7 @@
  * Implementation of hook_hosting_site_context_options().
  */
 function hosting_restapi_hosting_site_context_options(&$task) {
-  $token = db_result(db_query('SELECT token FROM hosting_restapi_order WHERE site = "%s" ORDER BY created DESC LIMIT 1', $task->ref->hosting_name));
+  $token = db_query('SELECT token FROM hosting_restapi_order WHERE site = :url ORDER BY created DESC LIMIT 1', array(':url' => $task->ref->hosting_name))->fetchField();
   $task->context_options['hosting_restapi_token'] = $token;
   $task->context_options['hosting_restapi_hostmaster'] = variable_get('hosting_restapi_hostmaster', NULL);
 }

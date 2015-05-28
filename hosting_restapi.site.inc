@@ -31,10 +31,7 @@ function hosting_restapi_site() {
   }
 
   echo json_encode($result);
-
-  // NB: in Drupal7, this becomes only drupal_exit();
-  module_invoke_all('exit');
-  exit();
+  drupal_exit();
 }
 
 /**
@@ -56,7 +53,7 @@ function hosting_restapi_site_get() {
   // If we had the invoice_id, return the site status
   // NB: as a security measure, the invoice_id and url must match.
   if ($invoice_id) {
-    $order_id = db_result(db_query('SELECT id FROM hosting_restapi_order WHERE invoice_id = "%s" AND site = "%s"', $invoice_id, $url));
+    $order_id = db_query('SELECT id FROM hosting_restapi_order WHERE invoice_id = :invoice_id AND site = :url', array(':invoice_id' => $invoice_id, ':url' => $url))->fetchField();
     $site = hosting_get_site_by_url($url);
 
     if (! $order_id) {
@@ -64,14 +61,14 @@ function hosting_restapi_site_get() {
     }
 
     // Fetch the last log.
-    $result = db_query('SELECT * FROM hosting_restapi_log WHERE order_id = %d ORDER BY created DESC limit 1', $order_id);
+    $result = db_query('SELECT * FROM hosting_restapi_log WHERE order_id = :order_id ORDER BY created DESC limit 1', array(':order_id' => $order_id));
 
-    if ($record = db_fetch_object($result)) {
+    if ($record = $result->fetchObject()) {
       // If it's a new order, check if the cloning has begun.
       if ($record->task == HOSTING_RESTAPI_ORDER_STATUS_NEW) {
         // FIXME HARDCODE: 608 = clone task of demo.s.c
-        $vid = db_result(db_query("SELECT max(vid) from hosting_task_arguments where nid = 608 and name = 'new_uri' and value = '%s'", $url));
-        $clone_status = db_result(db_query("SELECT task_status FROM hosting_task WHERE vid = %d", $vid));
+        $vid = db_query("SELECT max(vid) from hosting_task_arguments where nid = 608 and name = 'new_uri' and value = :url", array(':url' => $url))->fetchField();
+        $clone_status = db_query("SELECT task_status FROM hosting_task WHERE vid = :vid", array(':vid' => $vid))->fetchField();
 
         if ($clone_status == HOSTING_TASK_PROCESSING) {
           $result = array(
@@ -259,7 +256,7 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
   // Check if the invoice_id was already used.
   // XXX assumes that 1 invoice = 1 site. We don't support multi-quota stuff,
   // since we don't give access to Aegir.
-  $exists = db_result(db_query('SELECT count(*) as cpt FROM hosting_restapi_order WHERE invoice_id = "%s"', array($invoice_id)));
+  $exists = db_query('SELECT count(*) as cpt FROM hosting_restapi_order WHERE invoice_id = :invoice_id', array(':invoice_id' => $invoice_id))->fetchField();
 
   if ($exists) {
     watchdog('hosting_restapi', 'Invoice ID already used.');

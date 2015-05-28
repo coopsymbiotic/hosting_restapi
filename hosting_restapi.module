@@ -119,7 +119,7 @@ function hosting_restapi_check_capacity($set_error = FALSE) {
  */
 function hosting_restapi_log($url, $status, $message) {
   // Fetch the order_id of the site
-  $order_id = db_result(db_query("SELECT id FROM hosting_restapi_order WHERE site = '%s'", $url));
+  $order_id = db_query("SELECT id FROM hosting_restapi_order WHERE site = :url", array(':url' => $url))->fetchField();
 
   if (! $order_id) {
     drush_log('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
@@ -136,7 +136,11 @@ function hosting_restapi_log($url, $status, $message) {
   drupal_write_record('hosting_restapi_log', $record);
 
   // Update the parent status & update time.
-  db_query('UPDATE hosting_restapi_order SET updated = %d AND current_status = %d WHERE id = %d', array(time(), $status, $order_id));
+  db_query('UPDATE hosting_restapi_order SET updated = :time AND current_status = :status WHERE id = :order_id', array(
+    ':time' => time(),
+    ':status' => $status,
+    ':order_id' => $order_id,
+  ));
 }
 
 /**
@@ -184,14 +188,17 @@ function hosting_restapi_post_hosting_symbiotic_login_task($task, $data) {
   }
 }
 
-// TODO: in D7, this would call hosting_restapi_node_presave().
-function hosting_restapi_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if ($op == 'presave') {
-    if ($node->type == 'site' && empty($node->nid)) {
-      if (preg_match('/.symbiotic.coop$/', $node->title)) {
-        $node->ssl_enabled = 2;
-        $node->ssl_key = 25; // FIXME HARDCODE
-      }
+/**
+ * Implements hook_node_presave().
+ *
+ * FIXME: specific to SymbioTIC: if the domain is for a known SSL wildcard
+ * domain, require ssl to be enabled.
+ */
+function hosting_restapi_node_presave($node) {
+  if ($node->type == 'site' && empty($node->nid)) {
+    if (preg_match('/.symbiotic.coop$/', $node->title)) {
+      $node->ssl_enabled = 2;
+      $node->ssl_key = 25; // FIXME HARDCODE
     }
   }
 }

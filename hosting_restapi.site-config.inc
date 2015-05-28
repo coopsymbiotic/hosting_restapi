@@ -31,10 +31,7 @@ function hosting_restapi_site_config() {
   }
 
   echo json_encode($result);
-
-  // NB: in Drupal7, this becomes only drupal_exit();
-  module_invoke_all('exit');
-  exit();
+  drupal_exit();
 }
 
 /**
