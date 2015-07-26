@@ -61,7 +61,7 @@ function hosting_restapi_hosting_tasks() {
  * If ANY check is accepted, then the check returns TRUE.
  * If no implementations are found, this check returns TRUE.
  *
- * TODO: Implement basic check with an API key variable
+ * hosting_saas has a basic optional API key check.
  */
 function hosting_restapi_check_access($key = NULL, $secret = NULL) {
   $results = module_invoke_all('hosting_restapi_check_access', $key, $secret);
