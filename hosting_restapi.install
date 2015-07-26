@@ -1,13 +1,6 @@
 <?php
 
 /**
- * Implements hook_install().
- */
-function hosting_restapi_install() {
-  drupal_install_schema('hosting_restapi');
-}
-
-/**
  * Implements hook_schema().
  */
 function hosting_restapi_schema() {
