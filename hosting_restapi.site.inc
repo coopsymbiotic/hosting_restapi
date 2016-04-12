@@ -41,7 +41,10 @@ function hosting_restapi_site_get() {
   // FIXME: we want the user to have live updates on the status of the site,
   // so either we grant some temporary access, or we grant to anons.
 
-  hosting_restapi_check_access($_GET['key'], $_GET['secret']);
+  $access = hosting_restapi_check_access($_GET['key'], $_GET['secret']);
+  if (!$access) {
+    throw new Exception(t('Access denied.'));
+  }
 
   $url = $_GET['url'];
   $invoice_id = (isset($_GET['invoice']) ? $_GET['invoice'] : NULL);
@@ -151,7 +154,11 @@ function hosting_restapi_site_get() {
  * we only handle the [url] is rather the subdomain.
  */
 function hosting_restapi_site_post() {
-  hosting_restapi_check_access($_POST['key'], $_POST['secret']);
+  $access = hosting_restapi_check_access($_POST['key'], $_POST['secret']);
+
+  if (!$access) {
+    throw new Exception(t('Access denied.'));
+  }
 
   // TODO : check if URL format is OK (i.e. no spaces, etc)
   $url = check_plain($_POST['url']);
