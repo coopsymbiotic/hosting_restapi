@@ -13,11 +13,14 @@ https://github.com/coopsymbiotic/hosting_restapi
 Requirements
 ============
 
-* Aegir 6.x-2.x
-* hosting_saas https://drupal.org/project/hosting_saas
+* Aegir 7.x-3.x
 
 Recommended
 ===========
+
+To enable the "Site create" API, you must install hosting_saas:
+
+* hosting_saas https://drupal.org/project/hosting_saas
 
 This module was initially developped for Coop SymbioTIC's CiviCRM hosting.
 It was therefore designed to work with a CiviCRM contribution page to track
