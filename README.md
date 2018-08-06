@@ -58,6 +58,22 @@ the invoice ID (is paid, has not been re-used). Each valid order gets
 assigned a token. The token is then used to authenticate the site for
 further requests (ex: get org/client information, run backups, get db, etc).
 
+Getting started with CiviCRM
+============================
+
+* Install this module in your Aegir front-end (under `/var/aegir/hostmaster-7.x-3.xx/sites/example.org/modules/`).
+* Also enable `hosting_restapi_civicrm`
+* Create an API user on your CiviCRM instance (where signups are handled).
+* Set the API credentials on your Aegir server:
+
+```
+drush @hm vset hosting_restapi_crmhost https://crm.example.org
+drush @hm vset hosting_restapi_crmapikey YOUR_USER_API_KEY
+drush @hm vset hosting_restapi_crmkey YOUR_CIVICRM_SITE_KEY
+```
+
+NB: currently it assumes that you are using Drupal7 and that CiviCRM is in `/sites/all/modules/civicrm/`. This can easily be fixed in `hosting_restapi_civicrm_api` by adding the `path` parameter to `civicrm_api3` (see in `civicrm.class.php`).
+
 API documentation
 =================
 
