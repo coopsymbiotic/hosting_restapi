@@ -68,6 +68,7 @@ Getting started with CiviCRM
 
 ```
 drush @hm vset hosting_restapi_crmhost https://crm.example.org
+drush @hm vset hosting_restapi_hostmaster https://crm.example.org
 drush @hm vset hosting_restapi_crmapikey YOUR_USER_API_KEY
 drush @hm vset hosting_restapi_crmkey YOUR_CIVICRM_SITE_KEY
 ```
