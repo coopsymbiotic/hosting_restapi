@@ -68,12 +68,14 @@ Getting started with CiviCRM
 
 ```
 drush @hm vset hosting_restapi_crmhost https://crm.example.org
-drush @hm vset hosting_restapi_hostmaster https://crm.example.org
+drush @hm vset hosting_restapi_hostmaster https://aegir-instance.example.org
 drush @hm vset hosting_restapi_crmapikey YOUR_USER_API_KEY
 drush @hm vset hosting_restapi_crmkey YOUR_CIVICRM_SITE_KEY
 ```
 
 NB: currently it assumes that you are using Drupal7 and that CiviCRM is in `/sites/all/modules/civicrm/`. This can easily be fixed in `hosting_restapi_civicrm_api` by adding the `path` parameter to `civicrm_api3` (see in `civicrm.class.php`).
+
+Why this needs the hostmaster URL is not clear either, since that is used only from provision_symbiotic. Might be removed eventually.
 
 API documentation
 =================
