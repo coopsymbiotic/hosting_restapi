@@ -41,7 +41,7 @@ function hosting_restapi_get_invoice_id_from_token($url, $token) {
  * Returns a CiviCRM REST API object.
  */
 function & hosting_restapi_civicrmapi() {
-  require_once drupal_get_path('module', 'hosting_restapi') . '/civicrm.api.php';
+  require_once drupal_get_path('module', 'hosting_restapi') . '/hosting_restapi_civicrm/civicrm.api.php';
 
   $api = new civicrm_api3(array(
     'server' => variable_get('hosting_restapi_crmhost', NULL),
