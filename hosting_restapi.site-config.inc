@@ -72,8 +72,39 @@ function hosting_restapi_site_config_get() {
     'email' => $api->result->email,
   );
 
-  // TODO: individual information
-  // must fetch using the relation?
+  if ($api->result->contact_type == 'Organization') {
+    $settings['individual'] = [
+      'email' => $api->result->email,
+      'first_name' => $api->result->first_name,
+      'last_name' => $api->result->last_name,
+    ];
+  }
+  elseif ($api->result->contact_type == 'Organization') {
+    // If org contribution (on behalf of), fetch the first employee linked
+    // we usually assume orgs have only one employee, since it's a new signup.
+    // CiviCRM doesn't give us a better way to fetch this unfortunately (soft credit?).
+    $contact_id_org = $api->result->contact_id;
+
+    $api->Relationship->Get([
+      'relationship_type_id' => 4, // Employee of
+      'is_active' => 1,
+      'contact_id_b' => $contact_id_org,
+      // 'api.Contact.get' => array('id' => "\$value.contact_id_a"), // not working?
+    ]);
+
+    $api->Contact->Getsingle([
+      'id' => $api->result->values[0]->contact_id_a,
+    ]);
+
+    $settings['individual'] = [
+      'email' => $api->result->email,
+      'first_name' => $api->result->first_name,
+      'last_name' => $api->result->last_name,
+    ];
+  }
+  else {
+    return array('status' => 'error', 'data' => 'Unexpected contact type: ' . $api->result->contact_type);
+  }
 
   return array('status' => 'success', 'data' => $settings);
 }
