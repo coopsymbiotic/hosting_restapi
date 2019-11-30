@@ -101,7 +101,7 @@ function hosting_restapi_site_get() {
             'site_url' => $site->title,
             'site_status' => $record->task,
             'login_link' => 'https://' . $site->title . '/user',
-            'login_message' => t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox."),
+            // 'login_message' => t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox."),
           ),
         );
 
@@ -109,7 +109,7 @@ function hosting_restapi_site_get() {
         if ($cache && (time() < $cache->data['expire'])) {
           $result['data']['login_link'] = $cache->data['link'];
           // [ML] $result['data']['login_message'] = t("You can login directly using the link above.") . ' ' . t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox.");
-          $result['data']['login_message'] = t("The site has been created, but we still need to setup a few things. It should be ready soon!");
+          // $result['data']['login_message'] = t("The site has been created, but we still need to setup a few things. It should be ready soon!");
         }
 
         return $result;
