@@ -55,56 +55,17 @@ function hosting_restapi_site_config_get() {
     throw new Exception(t('Invalid token.'));
   }
 
-  // TODO:
-  $settings = array();
-
   $api = hosting_restapi_civicrmapi();
-  $api->Contribution->Getsingle(array('trxn_id' => $invoice_id));
-  $api->Contact->Getsingle(array('contact_id' => $api->result->contact_id));
 
-  $settings['organization'] = array(
-    'name' => $api->result->display_name,
-    'street_address' => $api->result->street_address,
-    'city' => $api->result->city,
-    'state_province_id' => $api->result->state_province_id,
-    'country_id' => $api->result->country_id,
-    'phone' => $api->result->phone,
-    'email' => $api->result->email,
-  );
+  $api->Symbiocivicrm->Getconfig([
+    'invoice_id' => $invoice_id,
+  ]);
 
-  if ($api->result->contact_type == 'Organization') {
-    $settings['individual'] = [
-      'email' => $api->result->email,
-      'first_name' => $api->result->first_name,
-      'last_name' => $api->result->last_name,
-    ];
-  }
-  elseif ($api->result->contact_type == 'Organization') {
-    // If org contribution (on behalf of), fetch the first employee linked
-    // we usually assume orgs have only one employee, since it's a new signup.
-    // CiviCRM doesn't give us a better way to fetch this unfortunately (soft credit?).
-    $contact_id_org = $api->result->contact_id;
+  $settings = $api->result->values;
 
-    $api->Relationship->Get([
-      'relationship_type_id' => 4, // Employee of
-      'is_active' => 1,
-      'contact_id_b' => $contact_id_org,
-      // 'api.Contact.get' => array('id' => "\$value.contact_id_a"), // not working?
-    ]);
-
-    $api->Contact->Getsingle([
-      'id' => $api->result->values[0]->contact_id_a,
-    ]);
-
-    $settings['individual'] = [
-      'email' => $api->result->email,
-      'first_name' => $api->result->first_name,
-      'last_name' => $api->result->last_name,
-    ];
-  }
-  else {
-    return array('status' => 'error', 'data' => 'Unexpected contact type: ' . $api->result->contact_type);
-  }
-
-  return array('status' => 'success', 'data' => $settings);
+  return [
+    // FIXME: detect API errors/exceptions
+    'status' => 'success',
+    'data' => $settings,
+  ];
 }

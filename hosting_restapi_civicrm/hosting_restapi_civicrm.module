@@ -10,7 +10,7 @@ function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id
 
   // Lookup the invoice_id in CiviCRM.
   $api = hosting_restapi_civicrm_api();
-  $api->Contribution->Get(array('trxn_id' => $invoice_id));
+  $api->Contribution->Get(array('invoice_id' => $invoice_id));
 
   if ($api->count == 1) {
     return TRUE;

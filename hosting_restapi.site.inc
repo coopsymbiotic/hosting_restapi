@@ -108,7 +108,8 @@ function hosting_restapi_site_get() {
         $cache = cache_get("hosting:site:" . $site->nid . ":symbiotic_login");
         if ($cache && (time() < $cache->data['expire'])) {
           $result['data']['login_link'] = $cache->data['link'];
-          $result['data']['login_message'] = t("You can login directly using the link above.") . ' ' . t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox.");
+          // [ML] $result['data']['login_message'] = t("You can login directly using the link above.") . ' ' . t("An e-mail has been sent to you with the login information for your new CiviCRM instance. Please check your junk mail folder if you do not see the message in your inbox.");
+          $result['data']['login_message'] = t("The site has been created, but we still need to setup a few things. It should be ready soon!");
         }
 
         return $result;
@@ -203,8 +204,7 @@ function hosting_restapi_site_post() {
     'target_platform' => $new_platform_nid,
     'aliases' => '',
     'redirection' => '',
-    'ssl_enabled' => 2, // FIXME : Use template site's setting?
-    'ssl_key' => 25, // FIXME : Use template site's ssl_key? (Assuming SNI)
+    'https_enabled' => 2, // FIXME : Use template site's setting?
   ));
 
   hosting_restapi_log($url, HOSTING_RESTAPI_ORDER_STATUS_NEW, t('The order is valid and has been created.'));
