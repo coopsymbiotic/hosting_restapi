@@ -27,6 +27,13 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site.inc',
   );
+  $items['hosting/api/site/backup'] = array(
+    'title' => 'Backup a site',
+    'page callback' => 'hosting_restapi_site_backup',
+    'description' => 'Get a list of backups, create a backup or download a backup',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-backup.inc',
+  );
   $items['hosting/api/site/config'] = array(
     'title' => 'Manage a site configuration',
     'page callback' => 'hosting_restapi_site_config',
