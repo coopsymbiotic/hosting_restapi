@@ -68,12 +68,14 @@ function hosting_restapi_site_backup_get() {
 
   // Duplicates hosting_site_backup_list(), which returns only a formatted description
   // (we just want an ISO date and size)
-  $result = db_query("SELECT bid, description, size, timestamp FROM {hosting_site_backups} WHERE site = :site ORDER BY timestamp DESC", array(':site' => $node->nid));
+  $result = db_query("SELECT bid, description, size, filename, FROM_UNIXTIME(timestamp) as date_created FROM {hosting_site_backups} WHERE site = :site ORDER BY timestamp DESC LIMIT 3", array(':site' => $node->nid));
   $backups = [];
 
   foreach ($result as $object) {
     $backups[$object->bid] = [
-      'date' => date('c', $object->timestamp),
+      'id' => $object->bid,
+      'date' => $object->date_created,
+      'filename' => $object->filename,
       'size' => $object->size,
     ];
   }
