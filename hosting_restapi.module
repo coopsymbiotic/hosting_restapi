@@ -209,3 +209,26 @@ function hosting_restapi_node_presave($node) {
     }
   }
 }
+
+/**
+ * Helper function to output CORS headers.
+ *
+ * Based on https://stackoverflow.com/a/9866124
+ */
+function hosting_restapi_cors_headers() {
+  header("Access-Control-Allow-Origin: *"); // FIXME
+  header('Access-Control-Allow-Credentials: false');
+
+  // Access-Control headers are received during OPTIONS requests
+  if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
+      header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    }
+
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
+      header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+    }
+
+    drupal_exit();
+  }
+}

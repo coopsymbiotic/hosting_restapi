@@ -9,6 +9,8 @@
  * Implements the 'site' API.
  */
 function hosting_restapi_site() {
+  hosting_restapi_cors_headers();
+
   $method = strtolower($_SERVER['REQUEST_METHOD']);
   $f = 'hosting_restapi_site_' . $method;
 
