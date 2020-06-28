@@ -10,7 +10,9 @@ define('HOSTING_RESTAPI_ORDER_STATUS_CLONE_INPROGRESS', 2);
 define('HOSTING_RESTAPI_ORDER_STATUS_CLONE_COMPLETE', 3);
 define('HOSTING_RESTAPI_ORDER_STATUS_IMPORT_INPROGRESS', 4);
 define('HOSTING_RESTAPI_ORDER_STATUS_IMPORT_COMPLETE', 5);
-define('HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE', 6);
+define('HOSTING_RESTAPI_ORDER_STATUS_VERIFY_FIRST', 6);
+define('HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE', 7);
+define('HOSTING_RESTAPI_ORDER_STATUS_VERIFY_COMPLETE', 8);
 
 require_once 'hosting_restapi.utils.php';
 
@@ -121,10 +123,10 @@ function hosting_restapi_check_capacity($set_error = FALSE) {
  * Log a message for a site.
  *
  * @param String $url
- * @param Int $status
+ * @param Int $task_id
  * @param String $message
  */
-function hosting_restapi_log($url, $status, $message) {
+function hosting_restapi_log($url, $task_id, $message) {
   // Fetch the order_id of the site
   $order_id = db_query("SELECT id FROM hosting_restapi_order WHERE site = :url", array(':url' => $url))->fetchField();
 
@@ -136,18 +138,21 @@ function hosting_restapi_log($url, $status, $message) {
   // Write the log
   $record = new StdClass();
   $record->order_id = $order_id;
-  $record->task = $status; // FIXME this is kind of weird..
+  $record->task = $task_id;
   $record->message = $message;
   $record->created = time();
 
   drupal_write_record('hosting_restapi_log', $record);
 
   // Update the parent status & update time.
-  db_query('UPDATE hosting_restapi_order SET updated = :time AND current_status = :status WHERE id = :order_id', array(
-    ':time' => time(),
-    ':status' => $status,
-    ':order_id' => $order_id,
-  ));
+  // FIXME This is not working for some reason
+  $record = new StdClass();
+  $record->current_status = $status;
+  $record->updated = time();
+
+  drupal_write_record('hosting_restapi_order', $record, [
+    'id' => $order_id,
+  ]);
 }
 
 /**
@@ -175,10 +180,27 @@ function hosting_restapi_post_hosting_import_task($task, $data) {
 /**
  * Implements hook_post_hosting_TASK_TYPE_task().
  */
+function hosting_restapi_post_hosting_verify_task($task, $data) {
+  if ($task->ref->type == 'site') {
+    // Workaround because for some reason hosting_restapi_order.current_status is never updated
+    $url = $task->context_options['uri'];
+    $order_id = db_query("SELECT id FROM hosting_restapi_order WHERE site = :url", [':url' => $url])->fetchField();
+    $cpt = db_query("SELECT count(*) as cpt FROM hosting_restapi_log WHERE order_id = :order_id AND task = :task_id", [':order_id' => $order_id, ':task_id' => HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE])->fetchField();
+
+    if ($cpt) {
+      hosting_restapi_log($task->context_options['uri'], HOSTING_RESTAPI_ORDER_STATUS_VERIFY_COMPLETE, 'hosting_restapi_post_hosting_verify_task final verify completed');
+    }
+    else {
+      hosting_restapi_log($task->context_options['uri'], HOSTING_RESTAPI_ORDER_STATUS_VERIFY_FIRST, 'hosting_restapi_post_hosting_verify_task first verify');
+    }
+  }
+}
+
+/**
+ * Implements hook_post_hosting_TASK_TYPE_task().
+ */
 function hosting_restapi_post_hosting_symbiotic_login_task($task, $data) {
   if ($task->ref->type == 'site') {
-    hosting_restapi_log($task->ref->title, HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE, 'hosting_restapi_post_hosting_symbiotic_login_task completed');
-
     $task->ref->no_verify = TRUE;
     node_save($task->ref);
 
@@ -191,6 +213,8 @@ function hosting_restapi_post_hosting_symbiotic_login_task($task, $data) {
         'link' => $context['symbiotic_login'],
       );
       cache_set('hosting:site:' . $task->ref->nid . ':symbiotic_login', $cache, 'cache', $cache['expire'] );
+
+      hosting_restapi_log($task->ref->title, HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE, 'hosting_restapi_post_hosting_symbiotic_login_task completed');
     }
   }
 }
@@ -204,8 +228,8 @@ function hosting_restapi_post_hosting_symbiotic_login_task($task, $data) {
 function hosting_restapi_node_presave($node) {
   if ($node->type == 'site' && empty($node->nid)) {
     if (preg_match('/.symbiotic.coop$/', $node->title)) {
-      $node->ssl_enabled = 2;
-      $node->ssl_key = 25; // FIXME HARDCODE
+      // $node->ssl_enabled = 2;
+      // $node->ssl_key = 25; // FIXME HARDCODE
     }
   }
 }

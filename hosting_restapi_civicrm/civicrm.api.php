@@ -93,7 +93,7 @@ class civicrm_api3 {
         $this->uri .= "/" . $config['path'];
       }
       else {
-        $this->uri .= '/sites/all/modules/civicrm/extern/rest.php';
+        $this->uri .= '/vendor/civicrm/civicrm-core/extern/rest.php';
       }
       $this->uri .= '?json=1';
       if (isset($config['key'])) {

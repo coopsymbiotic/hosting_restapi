@@ -47,6 +47,7 @@ function & hosting_restapi_civicrmapi() {
     'server' => variable_get('hosting_restapi_crmhost', NULL),
     'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
     'key' => variable_get('hosting_restapi_crmkey', NULL),
+    'path' => 'vendor/civicrm/civicrm-core/extern/rest.php',
   ));
 
   return $api;
