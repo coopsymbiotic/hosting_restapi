@@ -63,8 +63,15 @@ function hosting_restapi_site_config_get() {
 
   $settings = $api->result->values;
 
+  if ($api->is_error()) {
+    return [
+      'status' => 'error',
+      'invoice_id' => $invoice_id,
+      'data' => $api->errorMsg(),
+    ];
+  }
+
   return [
-    // FIXME: detect API errors/exceptions
     'status' => 'success',
     'data' => $settings,
   ];
