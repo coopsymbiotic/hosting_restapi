@@ -16,6 +16,12 @@ function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id
     return TRUE;
   }
   else {
+    $api->Contribution->Get(array('trxn_id' => $invoice_id));
+
+    if ($api->count == 1) {
+      return TRUE;
+    }
+
     throw new Exception('Could not lookup invoice.');
   }
 }
