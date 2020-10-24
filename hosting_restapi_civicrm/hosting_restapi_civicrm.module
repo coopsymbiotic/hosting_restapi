@@ -8,22 +8,19 @@
 function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id) {
   watchdog('hosting_restapi_civicrm', 'hosting_restapi_civicrm_hosting_restapi_validate_id');
 
-  // Lookup the invoice_id in CiviCRM.
+  // Lookup the invoice_id in CiviCRM
+  // Using the API from the "symbiocivicrm" extension because Stripe stores both the payment
+  // intent and the confirmation in the trxn_id field, which causes problems with Contribution.get.
   $api = hosting_restapi_civicrm_api();
-  $api->Contribution->Get(array('invoice_id' => $invoice_id));
+  $api->Symbiocivicrm->Getconfig([
+    'invoice_id' => $invoice_id,
+  ]);
 
   if ($api->count == 1) {
     return TRUE;
   }
-  else {
-    $api->Contribution->Get(array('trxn_id' => $invoice_id));
 
-    if ($api->count == 1) {
-      return TRUE;
-    }
-
-    throw new Exception('Could not lookup invoice.');
-  }
+  throw new Exception('Could not lookup invoice.');
 }
 
 /**
