@@ -16,7 +16,7 @@ function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id
     'invoice_id' => $invoice_id,
   ]);
 
-  if ($api->count == 1) {
+  if (!empty($api->values->site->name)) {
     return TRUE;
   }
 
