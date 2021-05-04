@@ -43,6 +43,13 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site-config.inc',
   );
+  $items['hosting/api/site/status'] = array(
+    'title' => 'Get the site membership or payment status',
+    'page callback' => 'hosting_restapi_site_status',
+    'description' => 'Get a site membership or payment status',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-status.inc',
+  );
 
   return $items;
 }
