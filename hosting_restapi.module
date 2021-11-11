@@ -50,6 +50,13 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site-status.inc',
   );
+  $items['hosting/api/site/welcome'] = array(
+    'title' => 'Send the welcome email',
+    'page callback' => 'hosting_restapi_site_welcome',
+    'description' => 'Send the welcome email',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-welcome.inc',
+  );
 
   return $items;
 }
