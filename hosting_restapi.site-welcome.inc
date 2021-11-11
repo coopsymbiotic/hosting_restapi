@@ -8,9 +8,9 @@
 /**
  * Implements the 'site/welcome' API.
  */
-function hosting_restapi_site_config() {
+function hosting_restapi_site_welcome() {
   $method = strtolower($_SERVER['REQUEST_METHOD']);
-  $f = 'hosting_restapi_site_config_' . $method;
+  $f = 'hosting_restapi_site_welcome_' . $method;
 
   try {
     if (function_exists($f)) {
@@ -37,7 +37,7 @@ function hosting_restapi_site_config() {
 /**
  * Implements the 'site/welcome POST' API.
  */
-function hosting_restapi_site_config_post() {
+function hosting_restapi_site_welcome_post() {
   $url = $_POST['url'];
   $token = $_POST['token'];
   $loginurl = $_POST['loginurl'];
