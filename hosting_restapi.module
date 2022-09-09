@@ -57,6 +57,13 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site-welcome.inc',
   );
+  $items['hosting/api/site/disable'] = array(
+    'title' => 'Disable a site',
+    'page callback' => 'hosting_restapi_site_disable',
+    'description' => 'Disable a site',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-disable.inc',
+  );
 
   return $items;
 }

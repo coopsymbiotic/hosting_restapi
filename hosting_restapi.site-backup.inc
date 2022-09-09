@@ -10,26 +10,7 @@
  */
 function hosting_restapi_site_backup() {
   $method = strtolower($_SERVER['REQUEST_METHOD']);
-  $f = 'hosting_restapi_site_backup_' . $method;
-
-  try {
-    if (function_exists($f)) {
-      $result = $f();
-    }
-    else {
-      $result = array(
-        'status' => 'error',
-        'message' => 'Unknown method for site_backup: ' . $_SERVER['REQUEST_METHOD'],
-      );
-    }
-  }
-  catch (Exception $e) {
-    $result = array(
-      'status' => 'error',
-      'message' => $e->getMessage(),
-    );
-  }
-
+  $result = hosting_restapi_invoke_function('site_backup', $method);
   echo json_encode($result);
   drupal_exit();
 }
@@ -41,21 +22,7 @@ function hosting_restapi_site_backup_get() {
   $url = $_GET['url'];
   $token = $_GET['token'];
   $new = $_GET['new'];
-
-  if (! $url) {
-    throw new Exception(t('The "url" parameter was empty.'));
-  }
-
-  if (! $token) {
-    throw new Exception(t('The "token" parameter was empty.'));
-  }
-
   $invoice_id = hosting_restapi_get_invoice_id_from_token($url, $token);
-
-  if (! $invoice_id) {
-    throw new Exception(t('Invalid token.'));
-  }
-
   $node = hosting_get_site_by_url($url);
 
   if ($new) {

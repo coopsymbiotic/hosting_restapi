@@ -10,26 +10,7 @@
  */
 function hosting_restapi_site_status() {
   $method = strtolower($_SERVER['REQUEST_METHOD']);
-  $f = 'hosting_restapi_site_status_' . $method;
-
-  try {
-    if (function_exists($f)) {
-      $result = $f();
-    }
-    else {
-      $result = array(
-        'status' => 'error',
-        'message' => 'Unknown method for site_status: ' . $_SERVER['REQUEST_METHOD'],
-      );
-    }
-  }
-  catch (Exception $e) {
-    $result = array(
-      'status' => 'error',
-      'message' => $e->getMessage(),
-    );
-  }
-
+  $result = hosting_restapi_invoke_function('site_status', $method);
   echo json_encode($result);
   drupal_exit();
 }
