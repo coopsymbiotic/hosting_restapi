@@ -30,6 +30,10 @@ function hosting_restapi_invoke_function($func, $method) {
     ];
   }
 
+  if ($result['status'] == 'error') {
+    http_response_code(500);
+  }
+
   return $result;
 }
 
