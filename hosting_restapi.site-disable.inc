@@ -23,6 +23,14 @@ function hosting_restapi_site_disable_post() {
   $invoice_id = $_POST['invoice'];
   $order_id = hosting_restapi_validate_invoice_id_for_url($url, $invoice_id);
   $node = hosting_get_site_by_url($url);
+
+  // Assume that it has been manually deleted
+  if (!$node) {
+    return [
+      'status' => 'success',
+    ];
+  }
+
   hosting_add_task($node->nid, 'disable');
 
   return [
