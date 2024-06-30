@@ -64,6 +64,13 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site-disable.inc',
   );
+  $items['hosting/api/site/delete'] = array(
+    'title' => 'Delete a site',
+    'page callback' => 'hosting_restapi_site_delete',
+    'description' => 'Delete a site',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-delete.inc',
+  );
 
   return $items;
 }
