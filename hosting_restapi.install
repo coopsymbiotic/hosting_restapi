@@ -51,6 +51,10 @@ function hosting_restapi_schema() {
         'length' => 64,
         'not null' => TRUE,
       ),
+      'crmhost' => array(
+        'type' => 'varchar',
+        'length' => 128,
+      ),
     ),
     'primary key' => array('id'),
     'indexes' => array('invoice_id' => array('invoice_id')),
@@ -89,4 +93,15 @@ function hosting_restapi_schema() {
   );
 
   return $schema;
+}
+
+/**
+ * Add the crmhost column.
+ */
+function hosting_restapi_update_7101() {
+  db_add_field('hosting_restapi_order', 'crmhost', [
+    'type' => 'varchar',
+    'length' => 128,
+    'default' => '',
+  ]);
 }
