@@ -61,3 +61,22 @@ function & hosting_restapi_civicrm_api() {
 
   return $api;
 }
+
+/**
+ * Sets the hosting_restapi_token in var in the inventory.
+ *
+ * Implements hook_ansible_inventory_alter from the 'aegir_ansible' module
+ *
+ * @see https://www.drupal.org/project/aegir_ansible/
+ */
+function hosting_restapi_civicrm_ansible_inventory_alter(&$inventory) {
+  $nids = !empty($_REQUEST['include_disabled']) ? hosting_civicrm_ansible_get_all_sites() : hosting_civicrm_get_sites();
+  $civicrm_nodes = node_load_multiple($nids);
+  foreach ($civicrm_nodes as $node) {
+    // This should be set by hosting_civicrm_ansible
+    if (empty($inventory->{'_meta'}->hostvars->{$node->title})) {
+      $inventory->{'_meta'}->hostvars->{$node->title} = [];
+    }
+    $inventory->{'_meta'}->hostvars->{$node->title}['hosting_restapi_token'] = hosting_restapi_get_token_for_url($node->title);
+  }
+}

@@ -181,6 +181,7 @@ function hosting_restapi_site_post() {
   $record->site = $url;
   $record->token = sha1($url . uniqid(mt_rand()));
   $record->ip = $_SERVER['REMOTE_ADDR'];
+  $record->crmhost = $_POST['crmhost'] ?? '';
   $record->current_status = HOSTING_RESTAPI_ORDER_STATUS_NEW;
   $record->created = time();
   $record->updated = time();
@@ -196,15 +197,18 @@ function hosting_restapi_site_post() {
     throw new Exception('Service has reached max capacity.');
   }
 
-  $result = hosting_add_task($template_nid, 'clone', array(
+  $result = hosting_add_task($template_nid, 'clone', [
     'new_uri' => $url,
-    // 2 is the default nid for single-server setups
     'new_db_server' => $new_db_server,
     'target_platform' => $new_platform_nid,
     'aliases' => '',
     'redirection' => '',
-    'https_enabled' => 2, // FIXME : Use template site's setting?
-  ));
+    // This is mostly symbolic and not used at the moment (aegir hooks are a pain)
+    'hosting_restapi_token' => $record->token,
+    // @todo Use the setting from the template site?
+    // although there are few reasons not to require https
+    'https_enabled' => 2,
+  ]);
 
   hosting_restapi_log($url, HOSTING_RESTAPI_ORDER_STATUS_NEW, t('The order is valid and has been created.'));
   return array('status' => 'success', 'data' => $result);

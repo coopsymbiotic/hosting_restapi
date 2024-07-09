@@ -100,6 +100,14 @@ function hosting_restapi_validate_invoice_id_for_url($url, $invoice_id) {
 }
 
 /**
+ * Returns the token for a given url
+ */
+function hosting_restapi_get_token_for_url(String $url) {
+  $token = db_query('SELECT token FROM hosting_restapi_order WHERE site = :url', [':url' => $url])->fetchField();
+  return $token;
+}
+
+/**
  * Returns a CiviCRM REST API object.
  */
 function & hosting_restapi_civicrmapi() {
