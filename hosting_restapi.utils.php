@@ -113,12 +113,12 @@ function hosting_restapi_get_token_for_url(String $url) {
 function & hosting_restapi_civicrmapi() {
   require_once drupal_get_path('module', 'hosting_restapi') . '/hosting_restapi_civicrm/civicrm.api.php';
 
-  $api = new civicrm_api3(array(
+  $api = new civicrm_api3([
     'server' => variable_get('hosting_restapi_crmhost', NULL),
     'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
     'key' => variable_get('hosting_restapi_crmkey', NULL),
-    'path' => 'vendor/civicrm/civicrm-core/extern/rest.php',
-  ));
+    'path' => '/libraries/civicrm/core/extern/rest.php',
+  ]);
 
   return $api;
 }
