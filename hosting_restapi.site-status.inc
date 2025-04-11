@@ -42,7 +42,7 @@ function hosting_restapi_site_status_get() {
     'invoice_id' => $invoice_id,
   ]);
 
-  $result = $api->result->values;
+  $result = $api->values;
 
   if ($api->is_error()) {
     return [

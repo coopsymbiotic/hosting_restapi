@@ -116,8 +116,7 @@ function & hosting_restapi_civicrmapi() {
   $api = new civicrm_api3([
     'server' => variable_get('hosting_restapi_crmhost', NULL),
     'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
-    'key' => variable_get('hosting_restapi_crmkey', NULL),
-    'path' => '/libraries/civicrm/core/extern/rest.php',
+    'site_key' => variable_get('hosting_restapi_crmkey', NULL),
   ]);
 
   return $api;

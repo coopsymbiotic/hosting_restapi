@@ -6,20 +6,16 @@
  * TODO: document.
  */
 function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id) {
-  watchdog('hosting_restapi_civicrm', 'hosting_restapi_civicrm_hosting_restapi_validate_id');
-
   // Lookup the invoice_id in CiviCRM
   // Using the API from the "symbiocivicrm" extension because Stripe stores both the payment
   // intent and the confirmation in the trxn_id field, which causes problems with Contribution.get.
-  $api = hosting_restapi_civicrm_api();
+  $api = hosting_restapi_civicrm_api($invoice_id);
   $api->Symbiocivicrm->Getconfig([
     'invoice_id' => $invoice_id,
   ]);
-
-  if (!empty($api->values->site->name)) {
+  if (!empty($api->values['site']['name'])) {
     return TRUE;
   }
-
   throw new Exception('Could not lookup invoice.');
 }
 
@@ -50,15 +46,15 @@ function hosting_restapi_civicrm_hosting_restapi_check_access($key = NULL, $secr
 /**
  * Returns a CiviCRM REST API object.
  */
-function & hosting_restapi_civicrm_api() {
+function & hosting_restapi_civicrm_api($invoice_id) {
   require_once drupal_get_path('module', 'hosting_restapi_civicrm') . '/civicrm.api.php';
-
-  $api = new civicrm_api3(array(
-    'server' => variable_get('hosting_restapi_crmhost', NULL),
+  $crmhost = db_query("SELECT crmhost FROM hosting_restapi_order WHERE invoice_id = :invoice_id", [':invoice_id' => $invoice_id])->fetchField();
+  $api = new civicrm_api3([
+    'server' => $crmhost,
+    // user key
     'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
-    'key' => variable_get('hosting_restapi_crmkey', NULL),
-  ));
-
+    'site_key' => variable_get('hosting_restapi_crmkey', NULL),
+  ]);
   return $api;
 }
 

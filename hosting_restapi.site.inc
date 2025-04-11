@@ -170,23 +170,26 @@ function hosting_restapi_site_post() {
 
   $site = _hosting_restapi_is_allowed_creation($url);
 
-  // Check if the order/invoice already exists.
   $invoice_id = $_POST['invoice'];
 
+  // Log order in hosting_restapi_order
+  $exists = db_query('SELECT count(*) as cpt FROM hosting_restapi_order WHERE invoice_id = :invoice_id', array(':invoice_id' => $invoice_id))->fetchField();
+
+  if (!$exists) {
+    $record = new StdClass();
+    $record->invoice_id = $invoice_id;
+    $record->site = $url;
+    $record->token = sha1($url . uniqid(mt_rand()));
+    $record->ip = $_SERVER['REMOTE_ADDR'];
+    $record->crmhost = $_POST['crmhost'];
+    $record->current_status = HOSTING_RESTAPI_ORDER_STATUS_NEW;
+    $record->created = time();
+    $record->updated = time();
+    drupal_write_record('hosting_restapi_order', $record);
+  }
+
+  // Check with the remote crmhost to see if it is valid
   hosting_restapi_is_valid_invoice($invoice_id);
-
-  // Log order in hosting_restapi_order.
-  $record = new StdClass();
-  $record->invoice_id = $invoice_id;
-  $record->site = $url;
-  $record->token = sha1($url . uniqid(mt_rand()));
-  $record->ip = $_SERVER['REMOTE_ADDR'];
-  $record->crmhost = $_POST['crmhost'] ?? '';
-  $record->current_status = HOSTING_RESTAPI_ORDER_STATUS_NEW;
-  $record->created = time();
-  $record->updated = time();
-
-  drupal_write_record('hosting_restapi_order', $record);
 
   // Clone a site
   $template_nid = variable_get('hosting_saas_template_site_nid', NULL);
@@ -264,14 +267,15 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
   }
 
   // Check if the invoice_id was already used.
-  // XXX assumes that 1 invoice = 1 site. We don't support multi-quota stuff,
-  // since we don't give access to Aegir.
+  // Assumes that 1 invoice = 1 site
+/*
   $exists = db_query('SELECT count(*) as cpt FROM hosting_restapi_order WHERE invoice_id = :invoice_id', array(':invoice_id' => $invoice_id))->fetchField();
 
   if ($exists) {
     watchdog('hosting_restapi', 'Invoice ID already used.');
     throw new Exception('Invalid invoice ID.');
   }
+*/
 
   // NB: for now, we assume that hook implementations will throw an exception
   // if they couldn't validate the invoice_id. It assumes we have only one

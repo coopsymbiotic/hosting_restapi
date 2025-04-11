@@ -22,7 +22,7 @@
  * @code
  *   $api = new civicrm_api3 (array ('server' => 'http://example.org',
  *                                   'api_key'=>'theusersecretkey',
- *                                   'key'=>'thesitesecretkey'));
+ *                                   'site_key'=>'thesitesecretkey'));
  * @endcode
  *
  * No matter how initialised and if civicrm is local or remote, you use the class the same way.
@@ -81,47 +81,30 @@ class civicrm_api3 {
   /**
    * @param array API configuration.
    */
-  function __construct($config = NULL) {
-    $this->local      = TRUE;
-    $this->input      = array();
-    $this->lastResult = array();
-    if (isset($config) && isset($config['server'])) {
-      // we are calling a remote server via REST
-      $this->local = FALSE;
-      $this->uri = $config['server'];
-      if (isset($config['path'])) {
-        $this->uri .= "/" . $config['path'];
-      }
-      else {
-        $this->uri .= '/libraries/civicrm/core/extern/rest.php';
-      }
-      $this->uri .= '?json=1';
-      if (isset($config['key'])) {
-        $this->key = $config['key'];
-      }
-      else {
-        die("\nFATAL:param['key] missing\n");
-      }
-      if (isset($config['api_key'])) {
-        $this->api_key = $config['api_key'];
-      }
-      else {
-        die("\nFATAL:param['api_key] missing\n");
-      }
-      return;
+  function __construct(Array $config) {
+    $this->input      = [];
+    $this->lastResult = [];
+    if (empty($config['server'])) {
+      throw new Exception('Missing server parameter');
     }
-    if (isset($config) && isset($config['conf_path'])) {
-      define('CIVICRM_SETTINGS_PATH', $config['conf_path'] . '/civicrm.settings.php');
-      require_once CIVICRM_SETTINGS_PATH;
-      require_once 'CRM/Core/ClassLoader.php';
-      require_once 'api/api.php';
-      require_once "api/v3/utils.php";
-      CRM_Core_ClassLoader::singleton()->register();
-      $this->cfg = CRM_Core_Config::singleton();
-      $this->init();
+    $this->uri = $config['server'];
+    if (!empty($config['path'])) {
+      $this->uri .= "/" . $config['path'];
     }
     else {
-      $this->cfg = CRM_Core_Config::singleton();
+      $this->uri .= '/civicrm/ajax/api4';
+    }
+    if (isset($config['site_key'])) {
+      $this->site_key = $config['site_key'];
+    }
+    else {
+      throw new Exception("param[key] missing");
+    }
+    if (isset($config['api_key'])) {
+      $this->api_key = $config['api_key'];
+    }
+    else {
+      throw new Exception("param[api_key] missing");
     }
   }
 
@@ -156,46 +139,30 @@ class civicrm_api3 {
   /**
    *
    */
-  function remoteCall($entity, $action, $params = array()) {
-    $fields = "key={$this->key}&api_key={$this->api_key}";
-    $query = $this->uri . "&entity=$entity&action=$action";
-    foreach ($params as $k => $v) {
-      $fields .= "&$k=" . urlencode($v);
+  function remoteCall($entity, $action, $params = []) {
+    // Ex: https://crm.example.org/civicrm/ajax/api4/Contact/get
+    $url = $this->uri . '/' . $entity . '/' . $action;
+    $request = stream_context_create([
+      'http' => [
+        'method' => 'POST',
+        'header' => [
+          'Content-Type: application/x-www-form-urlencoded',
+          'X-Civi-Auth: Bearer ' . $this->api_key,
+          'X-Civi-Key: ' . $this->site_key,
+        ],
+        'content' => http_build_query(['params' => json_encode($params)]),
+      ]
+    ]);
+    $response = file_get_contents($url, FALSE, $request);
+    $error = error_get_last();
+    if (empty($response)) {
+      // For some reason this does not seem to work when run from the web, maybe the Drupal error manager is catching it
+      // tl;dr: usually if this is empty, it's because of an Api4 authentication error.
+      error_log('hosting_restapi_civicrm: empty response (' . (empty($error) ? 'no error' : implode('; ', $error)) . ')');
+      return NULL;
     }
-    if (function_exists('curl_init')) {
-      // To facilitate debugging without leaking info, entity & action
-      // are GET, other data is POST.
-      $ch = curl_init();
-      curl_setopt($ch, CURLOPT_URL, $query);
-      curl_setopt($ch, CURLOPT_POST, count($params) + 2);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-      $result = curl_exec($ch);
-      // CiviCRM expects to get back a CiviCRM error object.
-      if (curl_errno($ch)) {
-        $res = new stdClass;
-        $res->is_error = 1;
-        $res->error_message = curl_error($ch);
-        $res->level = "cURL";
-        $res->error = array('cURL error' => curl_error($ch));
-        return $res;
-      }
-      curl_close($ch);
-    }
-    else {
-      // Should be discouraged, because the API credentials and data
-      // are submitted as GET data, increasing chance of exposure..
-      $result = file_get_contents($query . '&' . $fields);
-    }
-    if (!$res = json_decode($result)) {
-      $res = new stdClass;
-      $res->is_error = 1;
-      $res->error_message = 'Unable to parse returned JSON';
-      $res->level = 'json_decode';
-      $res->error = array('Unable to parse returned JSON' => $result);
-      $res->row_result = $result;
-    }
-    return $res;
+    $result = json_decode($response, TRUE);
+    return $result;
   }
 
   /**
@@ -205,50 +172,15 @@ class civicrm_api3 {
    *
    * @return bool
    */
-  function call($entity, $action = 'Get', $params = array()) {
-    if (is_int($params)) {
-      $params = array('id' => $params);
-    }
-    elseif (is_string($params)) {
-      $params = json_decode($params);
+  function call($entity, $action = 'Get', $params = []) {
+    $this->lastResult = $this->remoteCall($entity, $action, $params);
+
+    // @todo [ML] Not very sure what this should return
+    if ($this->lastResult == NULL) {
+      return FALSE;
     }
 
-    if (!isset($params['version'])) {
-      $params['version'] = 3;
-    }
-    if (!isset($params['sequential'])) {
-      $params['sequential'] = 1;
-    }
-
-    if (!$this->local) {
-      $this->lastResult = $this->remoteCall($entity, $action, $params);
-    }
-    else {
-      // Converts a multi-dimentional array into an object.
-      $this->lastResult = json_decode(json_encode(civicrm_api($entity, $action, $params)));
-    }
-    // Reset the input to be ready for a new call.
-    $this->input = array();
-    if (property_exists($this->lastResult, 'is_error')) {
-      return !$this->lastResult->is_error;
-    }
-    // getsingle doesn't have is_error.
     return TRUE;
-  }
-
-  /**
-   * Helper method for long running programs (eg bots).
-   */
-  function ping() {
-    global $_DB_DATAOBJECT;
-    foreach ($_DB_DATAOBJECT['CONNECTIONS'] as & $c) {
-      if (!$c->connection->ping()) {
-        $c->connect($this->cfg->dsn);
-        if (!$c->connection->ping()) {
-          die("we couldn't connect");
-        }
-      }
-    }
   }
 
   /**
@@ -284,7 +216,8 @@ class civicrm_api3 {
    *
    */
   public function is_error() {
-    return (property_exists($this->lastResult, 'is_error') && $this->lastResult->is_error);
+    // This used to check for is_error, but it does not seem to be available in api4?
+    return empty($this->lastResult);
   }
 
   /**
@@ -306,13 +239,13 @@ class civicrm_api3 {
       return $this;
     }
     if ($name === 'result') {
-      return $this->lastResult;
+      return $this->lastResult['values'];
     }
     if ($name === 'values') {
-      return $this->lastResult->values;
+      return $this->lastResult['values'];
     }
-    if (property_exists($this->lastResult, $name)) {
-      return $this->lastResult->$name;
+    if (isset($this->lastResult[$name])) {
+      return $this->lastResult[$name];
     }
     $this->currentEntity = $name;
     return $this;
@@ -336,4 +269,5 @@ class civicrm_api3 {
   public function result() {
     return $this->lastResult;
   }
+
 }
