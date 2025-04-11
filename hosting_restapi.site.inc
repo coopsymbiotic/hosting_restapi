@@ -160,7 +160,12 @@ function hosting_restapi_site_post() {
     throw new Exception(t('Access denied.'));
   }
 
-  // TODO : check if URL format is OK (i.e. no spaces, etc)
+  // Enforce a valid crmhost, otherwise we could validate invoices against a third-party endpoint
+  if (empty($_POST['crmhost']) || !(in_array($_POST['crmhost'], ['https://civicrm.org', 'https://civicrm.com']))) {
+    throw new Exception('Access denied.');
+  }
+
+  // Check if URL format is OK (i.e. no spaces, etc)
   $url = check_plain($_POST['url']);
   $url = preg_replace('/[^\.a-z0-9]/', '', $url);
 
