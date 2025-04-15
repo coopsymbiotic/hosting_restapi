@@ -106,18 +106,3 @@ function hosting_restapi_get_token_for_url(String $url) {
   $token = db_query('SELECT token FROM hosting_restapi_order WHERE site = :url', [':url' => $url])->fetchField();
   return $token;
 }
-
-/**
- * Returns a CiviCRM REST API object.
- */
-function & hosting_restapi_civicrmapi() {
-  require_once drupal_get_path('module', 'hosting_restapi') . '/hosting_restapi_civicrm/civicrm.api.php';
-
-  $api = new civicrm_api3([
-    'server' => variable_get('hosting_restapi_crmhost', NULL),
-    'api_key' => variable_get('hosting_restapi_crmapikey', NULL),
-    'site_key' => variable_get('hosting_restapi_crmkey', NULL),
-  ]);
-
-  return $api;
-}

@@ -60,14 +60,14 @@ function hosting_restapi_site_welcome_post() {
     throw new Exception(t('Invalid token.'));
   }
 
-  $api = hosting_restapi_civicrmapi();
+  $api = hosting_restapi_civicrm_api($invoice_id);
 
   $api->Symbiocivicrm->Welcome([
     'invoice_id' => $invoice_id,
     'loginurl' => $loginurl,
   ]);
 
-  $settings = $api->result->values;
+  $settings = $api->values;
 
   if ($api->is_error()) {
     return [

@@ -36,7 +36,7 @@ function hosting_restapi_site_status_get() {
     throw new Exception(t('Invalid token.'));
   }
 
-  $api = hosting_restapi_civicrmapi();
+  $api = hosting_restapi_civicrm_api($invoice_id);
 
   $api->Symbiocivicrm->Getstatus([
     'invoice_id' => $invoice_id,

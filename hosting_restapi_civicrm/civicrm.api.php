@@ -153,6 +153,12 @@ class civicrm_api3 {
         'content' => http_build_query(['params' => json_encode($params)]),
       ]
     ]);
+
+    // It is very difficult to debug when it fails, so make it fail hard
+    set_error_handler(function ($err_severity, $err_msg, $err_file, $err_line, array $err_context = []) {
+      throw new ErrorException($err_msg, 0, $err_severity, $err_file, $err_line);
+    }, E_WARNING);
+
     $response = file_get_contents($url, FALSE, $request);
     $error = error_get_last();
     if (empty($response)) {
@@ -161,6 +167,9 @@ class civicrm_api3 {
       error_log('hosting_restapi_civicrm: empty response (' . (empty($error) ? 'no error' : implode('; ', $error)) . ')');
       return NULL;
     }
+
+    restore_error_handler();
+
     $result = json_decode($response, TRUE);
     return $result;
   }
