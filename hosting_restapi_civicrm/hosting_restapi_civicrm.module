@@ -66,7 +66,7 @@ function & hosting_restapi_civicrm_api($invoice_id) {
  * @see https://www.drupal.org/project/aegir_ansible/
  */
 function hosting_restapi_civicrm_ansible_inventory_alter(&$inventory) {
-  $nids = !empty($_REQUEST['include_disabled']) ? hosting_civicrm_ansible_get_all_sites() : hosting_civicrm_get_sites();
+  $nids = hosting_civicrm_ansible_get_all_sites($_REQUEST['include_disabled'] ?? FALSE);
   $civicrm_nodes = node_load_multiple($nids);
   foreach ($civicrm_nodes as $node) {
     // This should be set by hosting_civicrm_ansible

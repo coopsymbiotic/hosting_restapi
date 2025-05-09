@@ -3,4 +3,6 @@ description = Minimal REST API implementation for Aegir
 package = Aegir
 dependencies[] = hosting
 dependencies[] = hosting_saas
+dependencies[] = hosting_civicrm_ansible
 core = 7.x
+backdrop = 1.x

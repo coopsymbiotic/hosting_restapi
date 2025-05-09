@@ -5,3 +5,4 @@ dependencies[] = hosting
 dependencies[] = hosting_saas
 dependencies[] = hosting_restapi
 core = 7.x
+backdrop = 1.x
