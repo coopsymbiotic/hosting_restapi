@@ -166,6 +166,7 @@ function hosting_restapi_log($url, $task_id, $message) {
   // Write the log
   $record = new StdClass();
   $record->order_id = $order_id;
+  // This is really more like a status?
   $record->task = $task_id;
   $record->message = $message;
   $record->created = time();
@@ -175,7 +176,7 @@ function hosting_restapi_log($url, $task_id, $message) {
   // Update the parent status & update time.
   // FIXME This is not working for some reason
   $record = new StdClass();
-  $record->current_status = $status;
+  $record->current_status = $task_id;
   $record->updated = time();
 
   drupal_write_record('hosting_restapi_order', $record, [
