@@ -159,29 +159,49 @@ function hosting_restapi_log($url, $task_id, $message) {
   $order_id = db_query("SELECT id FROM hosting_restapi_order WHERE site = :url", array(':url' => $url))->fetchField();
 
   if (! $order_id) {
-    drush_log('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
+    if (defined('BACKDROP_ROOT')) {
+      bee_instant_message('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
+    }
+    else {
+      drush_log('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
+    }
     return;
   }
 
   // Write the log
-  $record = new StdClass();
-  $record->order_id = $order_id;
-  // This is really more like a status?
-  $record->task = $task_id;
-  $record->message = $message;
-  $record->created = time();
-
-  drupal_write_record('hosting_restapi_log', $record);
+  if (defined('BACKDROP_ROOT')) {
+    db_insert('hosting_restapi_log')
+      ->fields([
+        'order_id' => $order_id,
+        // This is really more like a status?
+        'task' => $task_id,
+        'message' => $message,
+        'created' => time(),
+      ])
+      ->execute();
+  }
+  else {
+    // @deprecated
+    $record = new StdClass();
+    $record->order_id = $order_id;
+    // This is really more like a status?
+    $record->task = $task_id;
+    $record->message = $message;
+    $record->created = time();
+    drupal_write_record('hosting_restapi_log', $record);
+  }
 
   // Update the parent status & update time.
-  // FIXME This is not working for some reason
-  $record = new StdClass();
-  $record->current_status = $task_id;
-  $record->updated = time();
-
-  drupal_write_record('hosting_restapi_order', $record, [
-    'id' => $order_id,
-  ]);
+  // (this was buggy in Drupal, so not fixing)
+  if (defined('BACKDROP_ROOT')) {
+    db_update('hosting_restapi_order')
+      ->fields([
+        'current_status' => $task_id,
+        'updated' => time(),
+      ])
+      ->condition('id', $order_id)
+      ->execute();
+  }
 }
 
 /**
