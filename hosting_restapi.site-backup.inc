@@ -39,10 +39,16 @@ function hosting_restapi_site_backup_get() {
   $backups = [];
 
   foreach ($result as $object) {
+    // Aegir-on-Backdrop does not store the full path to the backup
+    $filename = $object->filename;
+    if ($filename[0] != '/') {
+      $filename = '/var/aegir/backups/' . $filename;
+    }
+
     $backups[$object->bid] = [
       'id' => $object->bid,
       'date' => $object->date_created,
-      'filename' => $object->filename,
+      'filename' => $filename,
       'size' => $object->size,
     ];
   }
