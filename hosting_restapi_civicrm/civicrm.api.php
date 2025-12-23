@@ -78,12 +78,18 @@
  */
 class civicrm_api3 {
 
+  public $input = [];
+  public $lastResult = [];
+  public $currentEntity = NULL;
+
+  public $uri = NULL;
+  public $site_key = NULL;
+  public $api_key = NULL;
+
   /**
    * @param array API configuration.
    */
   function __construct(Array $config) {
-    $this->input      = [];
-    $this->lastResult = [];
     if (empty($config['server'])) {
       throw new Exception('Missing server parameter');
     }
@@ -161,6 +167,7 @@ class civicrm_api3 {
 
     $response = file_get_contents($url, FALSE, $request);
     $error = error_get_last();
+
     if (empty($response)) {
       // For some reason this does not seem to work when run from the web, maybe the Drupal error manager is catching it
       // tl;dr: usually if this is empty, it's because of an Api4 authentication error.
@@ -196,7 +203,7 @@ class civicrm_api3 {
    * Return the last error message.
    */
   function errorMsg() {
-    return $this->lastResult->error_message;
+    return $this->lastResult->error_message ?? 'unknown error';
   }
 
   /**
@@ -251,7 +258,7 @@ class civicrm_api3 {
       return $this->lastResult['values'];
     }
     if ($name === 'values') {
-      return $this->lastResult['values'];
+      return $this->lastResult['values'] ?? NULL;
     }
     if (isset($this->lastResult[$name])) {
       return $this->lastResult[$name];
