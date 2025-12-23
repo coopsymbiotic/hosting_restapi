@@ -10,7 +10,7 @@ function hosting_restapi_civicrm_hosting_restapi_validate_invoice_id($invoice_id
   // Using the API from the "symbiocivicrm" extension because Stripe stores both the payment
   // intent and the confirmation in the trxn_id field, which causes problems with Contribution.get.
   $api = hosting_restapi_civicrm_api($invoice_id);
-  $api->Symbiocivicrm->Getconfig([
+  $api->Symbiocivicrm->getconfig([
     'invoice_id' => $invoice_id,
   ]);
   if (!empty($api->values['site']['name'])) {

@@ -61,8 +61,7 @@ function hosting_restapi_site_welcome_post() {
   }
 
   $api = hosting_restapi_civicrm_api($invoice_id);
-
-  $api->Symbiocivicrm->Welcome([
+  $api->Symbiocivicrm->welcome([
     'invoice_id' => $invoice_id,
     'loginurl' => $loginurl,
   ]);

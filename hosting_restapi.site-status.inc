@@ -37,8 +37,7 @@ function hosting_restapi_site_status_get() {
   }
 
   $api = hosting_restapi_civicrm_api($invoice_id);
-
-  $api->Symbiocivicrm->Getstatus([
+  $api->Symbiocivicrm->getstatus([
     'invoice_id' => $invoice_id,
   ]);
 

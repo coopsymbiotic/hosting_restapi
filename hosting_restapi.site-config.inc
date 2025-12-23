@@ -56,8 +56,7 @@ function hosting_restapi_site_config_get() {
   }
 
   $api = hosting_restapi_civicrm_api($invoice_id);
-
-  $api->Symbiocivicrm->Getconfig([
+  $api->Symbiocivicrm->getconfig([
     'invoice_id' => $invoice_id,
   ]);
 
