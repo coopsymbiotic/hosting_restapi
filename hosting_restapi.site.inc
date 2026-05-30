@@ -259,7 +259,7 @@ function _hosting_restapi_get_site_install_status($site) {
       AND task_status != 0
     ORDER BY executed DESC", [':rid' => $site->nid])->fetchObject();
 
-  if ($task->task_status == HOSTING_TASK_ERROR) {
+  if (in_array($task->task_status, [HOSTING_TASK_ERROR, HOSTING_TASK_WARNING])) {
     return [
       'status' => 'error',
       'data' => [
