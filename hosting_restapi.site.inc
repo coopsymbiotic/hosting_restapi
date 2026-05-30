@@ -274,6 +274,8 @@ function _hosting_restapi_get_site_install_status($site) {
     'data' => [
       'site_url' => $site->title,
       'site_status' => $map[$task->task_type] ?? HOSTING_RESTAPI_ORDER_STATUS_NEW,
+      'task_type' => $task->task_type,
+      'task_status' => $task->task_status,
     ],
   ];
 }
