@@ -6,11 +6,9 @@
  */
 
 define('HOSTING_RESTAPI_ORDER_STATUS_NEW', 1);
-define('HOSTING_RESTAPI_ORDER_STATUS_CLONE_INPROGRESS', 2);
-define('HOSTING_RESTAPI_ORDER_STATUS_CLONE_COMPLETE', 3);
-define('HOSTING_RESTAPI_ORDER_STATUS_IMPORT_INPROGRESS', 4);
-define('HOSTING_RESTAPI_ORDER_STATUS_IMPORT_COMPLETE', 5);
-define('HOSTING_RESTAPI_ORDER_STATUS_VERIFY_FIRST', 6);
+define('HOSTING_RESTAPI_ORDER_STATUS_INSTALLED', 2);
+define('HOSTING_RESTAPI_ORDER_STATUS_ENABLED', 3);
+define('HOSTING_RESTAPI_ORDER_STATUS_VERIFIED', 6);
 define('HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE', 7);
 define('HOSTING_RESTAPI_ORDER_STATUS_VERIFY_COMPLETE', 8);
 
@@ -20,8 +18,7 @@ require_once 'hosting_restapi.utils.php';
  * Implements hook_menu().
  */
 function hosting_restapi_menu() {
-  $items = array();
-
+  $items = [];
   $items['hosting/api/site'] = array(
     'title' => 'Manage a site',
     'page callback' => 'hosting_restapi_site',
@@ -71,7 +68,6 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site-delete.inc',
   );
-
   return $items;
 }
 
@@ -79,13 +75,11 @@ function hosting_restapi_menu() {
  * Implementation of hook_hosting_tasks
  */
 function hosting_restapi_hosting_tasks() {
-  $tasks = array();
-
-  $tasks['site']['symbiotic-login'] = array(
+  $tasks = [];
+  $tasks['site']['symbiotic-login'] = [
      'title' => t('Reset uid2 password'),
      'description' => t('Generate a one-time login reset url for this site for uid 2.'),
-  );
-
+  ];
   return $tasks;
 }
 
@@ -159,37 +153,20 @@ function hosting_restapi_log($url, $task_id, $message) {
   $order_id = db_query("SELECT id FROM hosting_restapi_order WHERE site = :url", array(':url' => $url))->fetchField();
 
   if (! $order_id) {
-    if (defined('BACKDROP_ROOT')) {
-      bee_instant_message('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
-    }
-    else {
-      drush_log('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
-    }
+    bee_instant_message('hosting_restapi_log: This site does not have an order_id. No status logged. URL = ' . $url, 'ok');
     return;
   }
 
   // Write the log
-  if (defined('BACKDROP_ROOT')) {
-    db_insert('hosting_restapi_log')
-      ->fields([
-        'order_id' => $order_id,
-        // This is really more like a status?
-        'task' => $task_id,
-        'message' => $message,
-        'created' => time(),
-      ])
-      ->execute();
-  }
-  else {
-    // @deprecated
-    $record = new StdClass();
-    $record->order_id = $order_id;
-    // This is really more like a status?
-    $record->task = $task_id;
-    $record->message = $message;
-    $record->created = time();
-    drupal_write_record('hosting_restapi_log', $record);
-  }
+  db_insert('hosting_restapi_log')
+    ->fields([
+      'order_id' => $order_id,
+      // This is really more like a status?
+      'task' => $task_id,
+      'message' => $message,
+      'created' => time(),
+    ])
+    ->execute();
 
   // Update the parent status & update time.
   // (this was buggy in Drupal, so not fixing)
@@ -201,47 +178,6 @@ function hosting_restapi_log($url, $task_id, $message) {
       ])
       ->condition('id', $order_id)
       ->execute();
-  }
-}
-
-/**
- * Implements hook_post_hosting_TASK_TYPE_task().
- */
-function hosting_restapi_post_hosting_clone_task($task, $data) {
-  if ($task->ref->type == 'site') {
-    hosting_restapi_log($task->task_args['new_uri'], HOSTING_RESTAPI_ORDER_STATUS_CLONE_COMPLETE, 'hosting_restapi_post_hosting_clone_task completed');
-  }
-}
-
-/**
- * Implements hook_post_hosting_TASK_TYPE_task().
- */
-function hosting_restapi_post_hosting_import_task($task, $data) {
-  if ($task->ref->type == 'site') {
-    hosting_restapi_log($task->context_options['uri'], HOSTING_RESTAPI_ORDER_STATUS_IMPORT_COMPLETE, 'hosting_restapi_post_hosting_import_task completed');
-
-    // Reset the login link
-    // Next step in hosting_restapi_post_hosting_login_reset_task
-    hosting_add_task($task->ref->nid, 'symbiotic-login');
-  }
-}
-
-/**
- * Implements hook_post_hosting_TASK_TYPE_task().
- */
-function hosting_restapi_post_hosting_verify_task($task, $data) {
-  if ($task->ref->type == 'site') {
-    // Workaround because for some reason hosting_restapi_order.current_status is never updated
-    $url = $task->context_options['uri'];
-    $order_id = db_query("SELECT id FROM hosting_restapi_order WHERE site = :url", [':url' => $url])->fetchField();
-    $cpt = db_query("SELECT count(*) as cpt FROM hosting_restapi_log WHERE order_id = :order_id AND task = :task_id", [':order_id' => $order_id, ':task_id' => HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE])->fetchField();
-
-    if ($cpt) {
-      hosting_restapi_log($task->context_options['uri'], HOSTING_RESTAPI_ORDER_STATUS_VERIFY_COMPLETE, 'hosting_restapi_post_hosting_verify_task final verify completed');
-    }
-    else {
-      hosting_restapi_log($task->context_options['uri'], HOSTING_RESTAPI_ORDER_STATUS_VERIFY_FIRST, 'hosting_restapi_post_hosting_verify_task first verify');
-    }
   }
 }
 
@@ -264,21 +200,6 @@ function hosting_restapi_post_hosting_symbiotic_login_task($task, $data) {
       cache_set('hosting:site:' . $task->ref->nid . ':symbiotic_login', $cache, 'cache', $cache['expire'] );
 
       hosting_restapi_log($task->ref->title, HOSTING_RESTAPI_ORDER_STATUS_LOGIN_RESET_COMPLETE, 'hosting_restapi_post_hosting_symbiotic_login_task completed');
-    }
-  }
-}
-
-/**
- * Implements hook_node_presave().
- *
- * FIXME: specific to SymbioTIC: if the domain is for a known SSL wildcard
- * domain, require ssl to be enabled.
- */
-function hosting_restapi_node_presave($node) {
-  if ($node->type == 'site' && empty($node->nid)) {
-    if (preg_match('/.symbiotic.coop$/', $node->title)) {
-      // $node->ssl_enabled = 2;
-      // $node->ssl_key = 25; // FIXME HARDCODE
     }
   }
 }

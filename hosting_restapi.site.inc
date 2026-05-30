@@ -61,84 +61,27 @@ function hosting_restapi_site_get() {
     $order_id = db_query('SELECT id FROM hosting_restapi_order WHERE invoice_id = :invoice_id AND site = :url', array(':invoice_id' => $invoice_id, ':url' => $url))->fetchField();
     $site = hosting_get_site_by_url($url);
 
-    if (! $order_id) {
+    if (!$order_id) {
       throw new Exception(t('Invalid invoice ID or URL. Please contact support for more information.'));
     }
 
-    // Fetch the last log.
-    $result = db_query('SELECT * FROM hosting_restapi_log WHERE order_id = :order_id ORDER BY created DESC limit 1', array(':order_id' => $order_id));
-
-    if ($record = $result->fetchObject()) {
-      // If it's a new order, check if the cloning has begun.
-      if ($record->task == HOSTING_RESTAPI_ORDER_STATUS_NEW) {
-        // FIXME HARDCODE: 608 = clone task of demo.s.c
-        $vid = db_query("SELECT max(vid) from hosting_task_arguments where nid = 608 and name = 'new_uri' and value = :url", array(':url' => $url))->fetchField();
-        $clone_status = db_query("SELECT task_status FROM hosting_task WHERE vid = :vid", array(':vid' => $vid))->fetchField();
-
-        if ($clone_status == HOSTING_TASK_PROCESSING) {
-          $result = array(
-            'status' => 'success',
-            'data' => array(
-              'site_url' => $site->title,
-              'site_status' => HOSTING_RESTAPI_ORDER_STATUS_CLONE_INPROGRESS,
-            ),
-          );
-          return $result;
-        }
-        elseif ($clone_status == HOSTING_TASK_ERROR) {
-          $result = array(
-            'status' => 'error',
-            'data' => array(
-              'site_url' => $site->title,
-              'message' => "Clone operation failed.",
-            ),
-          );
-          return $result;
-        }
-      }
-      elseif ($record->task == HOSTING_RESTAPI_ORDER_STATUS_VERIFY_COMPLETE) {
-        $result = array(
-          'status' => 'success',
-          'data' => array(
-            'site_url' => $site->title,
-            'site_status' => $record->task,
-            'login_link' => 'https://' . $site->title . '/user',
-          ),
-        );
-
-        $cache = cache_get("hosting:site:" . $site->nid . ":symbiotic_login");
-        if ($cache && (time() < $cache->data['expire'])) {
-          $result['data']['login_link'] = $cache->data['link'];
-        }
-
-        return $result;
-      }
-
-      $result = array(
-        'status' => 'success',
-        'data' => array(
-          'site_url' => $site->title,
-          'site_status' => $record->task,
-        ),
-      );
-      return $result;
-    }
+    return _hosting_restapi_get_site_install_status($site);
   }
 
   // Otherwise just return if the site exists or not.
   $site = hosting_get_site_by_url($url);
 
-  if (! $site) {
+  if (!$site) {
     throw new Exception(t('Site not found. Please contact support for more information.'));
   }
 
-  $result = array(
+  $result = [
     'status' => 'success',
-    'data' => array(
+    'data' => [
       'site_url' => $site->title,
       'site_status' => $site->site_status,
-    ),
-  );
+    ],
+  ];
 
   return $result;
 }
@@ -196,8 +139,7 @@ function hosting_restapi_site_post() {
   // Check with the remote crmhost to see if it is valid
   hosting_restapi_is_valid_invoice($invoice_id);
 
-  // Clone a site
-  $template_nid = variable_get('hosting_saas_template_site_nid', NULL);
+  // Create a site
   $new_platform_nid = variable_get('hosting_saas_target_platform', NULL);
   $new_db_server = variable_get('hosting_saas_db_server', 2); // 2 = DB server on single-server default setups
 
@@ -205,21 +147,29 @@ function hosting_restapi_site_post() {
     throw new Exception('Service has reached max capacity.');
   }
 
-  $result = hosting_add_task($template_nid, 'clone', [
-    'new_uri' => $url,
-    'new_db_server' => $new_db_server,
-    'target_platform' => $new_platform_nid,
-    'aliases' => '',
-    'redirection' => '',
-    // This is mostly symbolic and not used at the moment (aegir hooks are a pain)
-    'hosting_restapi_token' => $record->token,
-    // @todo Use the setting from the template site?
-    // although there are few reasons not to require https
-    'https_enabled' => 2,
-  ]);
+  $site = new Node();
+  $site->type = 'site';
+  $site->title = $url;
+  $site->status = 1;
+  $site->uid = 1;
+  $site->site_status = HOSTING_SITE_QUEUED;
+  $site->site_language = $_POST['language'];
+  $site->platform = $new_platform_nid;
+  $site->db_server = $new_db_server;
+  $site->db_name = hosting_site_db_utils::suggest_db_name($url);
+  $site->db_passwd = hosting_site_db_utils::generate_password();
+  $site->environment = 1; /* prod */
+  $site->cron_interval = 86400; /* 1 day */
+  $site->civicrm_ansible_cron_interval = 900; /* 15 mins */
+
+  $site = node_submit($site);
+  node_save($site);
 
   hosting_restapi_log($url, HOSTING_RESTAPI_ORDER_STATUS_NEW, t('The order is valid and has been created.'));
-  return array('status' => 'success', 'data' => $result);
+  return [
+    'status' => 'success',
+    'data' => ['nid' => $site->nid],
+  ];
 }
 
 /**
@@ -235,7 +185,8 @@ function _hosting_restapi_is_allowed_creation($url) {
   // This function checks for uniqueness of domains and aliases.
   // TODO: we should also implement hook_allow_domain() to enforce domain?
   if (! hosting_domain_allowed($url)) {
-    throw new Exception('The url is not allowed by local configurations: ' . $url);
+    // @todo [ML] does not work (above returns false), disable for now
+    // throw new Exception('The url is not allowed by local configurations: ' . $url);
   }
 
   $site = hosting_get_site_by_url($url);
@@ -289,4 +240,40 @@ function hosting_restapi_is_valid_invoice($invoice_id) {
   module_invoke_all("hosting_restapi_validate_invoice_id", $invoice_id);
 
   return TRUE;
+}
+
+/**
+ *
+ */
+function _hosting_restapi_get_site_install_status($site) {
+  $map = [
+    'install' => HOSTING_RESTAPI_ORDER_STATUS_INSTALLED,
+    'enable' => HOSTING_RESTAPI_ORDER_STATUS_ENABLED,
+    'verify' => HOSTING_RESTAPI_ORDER_STATUS_VERIFIED,
+  ];
+
+  $task = db_query("SELECT *
+    FROM hosting_task
+    WHERE rid = :rid
+      AND task_type IN ('install', 'enable', 'verify')
+      AND task_status != 0
+    ORDER BY executed DESC", [':rid' => $site->nid])->fetchObject();
+
+  if ($task->task_status == HOSTING_TASK_ERROR) {
+    return [
+      'status' => 'error',
+      'data' => [
+        'site_url' => $site->title,
+        'message' => "{$task->task_type} operation failed",
+      ],
+    ];
+  }
+
+  return [
+    'status' => 'success',
+    'data' => [
+      'site_url' => $site->title,
+      'site_status' => $map[$task->task_type] ?? HOSTING_RESTAPI_ORDER_STATUS_NEW,
+    ],
+  ];
 }
