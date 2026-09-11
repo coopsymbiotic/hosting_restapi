@@ -6,26 +6,21 @@
  */
 
 /**
- * Implements the 'site/status' API.
+ * Implements the 'site/cancelsub' API.
  */
-function hosting_restapi_site_status() {
+function hosting_restapi_site_cancelsub() {
   $method = strtolower($_SERVER['REQUEST_METHOD']);
-  $result = hosting_restapi_invoke_function('site_status', $method);
+  $result = hosting_restapi_invoke_function('site_cancelsub', $method);
   echo json_encode($result);
   drupal_exit();
 }
 
-// Deprecated
-function hosting_restapi_site_status_get() {
-  hosting_restapi_site_status_post();
-}
-
 /**
- * Implements the 'site/status POST' API.
+ * Implements the 'site/cancelsub POST' API.
  */
-function hosting_restapi_site_status_post() {
-  $url = $_REQUEST['url'];
-  $token = $_REQUEST['token'];
+function hosting_restapi_site_cancelsub_post() {
+  $url = $_POST['url'];
+  $token = $_POST['token'];
 
   if (!$url) {
     throw new Exception(t('The "url" parameter was empty.'));
@@ -42,8 +37,9 @@ function hosting_restapi_site_status_post() {
   }
 
   $api = hosting_restapi_civicrm_api($invoice_id);
-  $api->Symbiocivicrm->getstatus([
+  $api->Symbiocivicrm->cancelsub([
     'invoice_id' => $invoice_id,
+    'details' => $_POST['details'] ?? '',
   ]);
 
   $result = $api->values;
@@ -58,6 +54,5 @@ function hosting_restapi_site_status_post() {
 
   return [
     'status' => 'success',
-    'data' => $result,
   ];
 }

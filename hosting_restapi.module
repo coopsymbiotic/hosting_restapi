@@ -54,6 +54,20 @@ function hosting_restapi_menu() {
     'access callback' => TRUE,
     'file' => 'hosting_restapi.site-welcome.inc',
   );
+  $items['hosting/api/site/cancelsub'] = array(
+    'title' => 'Cancel site subscription',
+    'page callback' => 'hosting_restapi_site_cancelsub',
+    'description' => 'Cancel site subscription',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-cancelsub.inc',
+  );
+  $items['hosting/api/site/getbilling'] = array(
+    'title' => 'Get billing information',
+    'page callback' => 'hosting_restapi_site_getbilling',
+    'description' => 'Get billing information',
+    'access callback' => TRUE,
+    'file' => 'hosting_restapi.site-getbilling.inc',
+  );
   $items['hosting/api/site/disable'] = array(
     'title' => 'Disable a site',
     'page callback' => 'hosting_restapi_site_disable',
